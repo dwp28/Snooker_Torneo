@@ -289,7 +289,7 @@ function setupEventListeners() {
         showToast('🔓 Modo Administrador desbloqueado con éxito', 'success');
         renderAllViews();
       } else {
-        alert('❌ Contraseña incorrecta. Utiliza la contraseña oficial (blackpool123).');
+        alert('❌ Contraseña incorrecta');
       }
     });
   }
