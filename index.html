@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Torneo Snooker Blackpool Madrid | Gestión de Resultados y Horarios</title>
-  <meta name="description" content="Plataforma en vivo de gestión de resultados, horarios y clasificación del Torneo de Snooker Blackpool Madrid - Sedes Vallecas y Alcobendas.">
+  <meta name="description" content="Plataforma oficial en vivo para el Torneo de Snooker Blackpool Madrid - Sedes Vallecas y Alcobendas. Resultados, horarios, mesas y clasificación.">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
 </head>
@@ -18,7 +18,7 @@
     </div>
 
     <div class="admin-mode-pill">
-      <span id="spectator-status-badge" style="color:var(--text-muted); font-size:0.78rem;">
+      <span id="spectator-status-badge" style="color:var(--text-muted); font-size:0.8rem; font-weight:600;">
         👀 Modo Espectador (Solo lectura en vivo)
       </span>
       <button type="button" class="btn-admin-login-trigger" id="btn-login-admin-trigger">
@@ -26,10 +26,26 @@
       </button>
 
       <span class="admin-badge-active" id="admin-status-badge" style="display:none;">
-        🛡️ Modo Administrador Activo
+        🛡️ Administrador Conectado
       </span>
-      <button type="button" class="btn-clear-match" id="btn-logout-admin-trigger" style="display:none; color:#fca5a5; font-size:0.78rem; font-weight:700;">
-        🚪 Salir
+      <button type="button" class="btn-clear-match" id="btn-logout-admin-trigger" style="display:none; color:#fca5a5; font-size:0.8rem; font-weight:800;">
+        🚪 Cerrar Sesión
+      </button>
+    </div>
+  </div>
+
+  <!-- AVISO DE TABLA SUPABASE PENDIENTE (SI LA TABLA NO EXISTE AÚN) -->
+  <div class="supabase-alert-banner" id="supabase-missing-banner" style="display:none;">
+    <div>
+      <span>⚠️ <strong>Aviso Importante de Supabase:</strong> La tabla <code>tournament_state</code> aún no se ha creado en tu base de datos de Supabase.</span>
+      <span style="color:var(--text-main); font-size:0.82rem; margin-left:0.5rem;">Las puntuaciones se guardan localmente hasta que crees la tabla (toma 1 minuto).</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <button type="button" class="btn-admin-login-trigger" id="btn-open-sql-modal" style="background:#ef4444; border-color:#fca5a5; color:#fff;">
+        📋 Ver / Copiar Código SQL
+      </button>
+      <button type="button" class="btn-clear-match" onclick="syncFromSupabase()" title="Reintentar comprobación">
+        🔄 Reintentar
       </button>
     </div>
   </div>
@@ -104,16 +120,19 @@
   <main class="main-content">
 
     <!-- ====================================================================
-         TAB 1: PARTIDOS (MATCHES)
+         TAB 1: PARTIDOS (MATCHES & ADVANCED FILTERS)
          ==================================================================== -->
     <section class="tab-pane active" id="tab-matches">
-      <div class="section-toolbar">
-        <div class="toolbar-title">
-          <span>🎱</span>
-          <span>Partidos y Programación Oficial</span>
-        </div>
+      
+      <!-- Toolbar de Filtros Avanzados (Sede, Grupo, Mesa, Hora, Estado) -->
+      <div class="section-toolbar-advanced">
         
-        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+        <div class="toolbar-top-row">
+          <div class="toolbar-title">
+            <span>🎱</span>
+            <span>Programación y Resultados de Partidos</span>
+          </div>
+
           <!-- Selector de Sede -->
           <div class="venue-segmented-control">
             <button type="button" class="venue-pill-btn active" data-venue="vallecas">
@@ -123,24 +142,78 @@
               📍 Alcobendas (Grupos 5-8)
             </button>
           </div>
-
-          <!-- Filtro por Grupo específico -->
-          <select class="filter-group-select" id="filter-group-matches" aria-label="Filtrar por grupo">
-            <option value="all">Todos los Grupos (1 al 4)</option>
-            <option value="1">Grupo 1</option>
-            <option value="2">Grupo 2</option>
-            <option value="3">Grupo 3</option>
-            <option value="4">Grupo 4</option>
-          </select>
         </div>
-      </div>
 
-      <div class="info-notice">
-        <span>💡</span>
-        <div>
-          <strong>Horarios y Descansos:</strong> Cada partido tiene asignado su <strong>Día, Hora y Mesa</strong> en bloques de ~2h asegurando descansos continuos entre enfrentamientos.
-          Formato: <strong>Mejor de 3 Frames</strong> (gana con 2). Puedes anotar el <strong>Highest Break</strong> de cada jugador.
+        <!-- Barra de Filtros Intuitiva -->
+        <div class="filters-bar-grid">
+          
+          <!-- Filtro Grupo -->
+          <div class="filter-control-wrap">
+            <label for="filter-matches-group">Grupo</label>
+            <select class="filter-select" id="filter-matches-group">
+              <option value="all">Todos los Grupos (1 al 4)</option>
+              <option value="1">Grupo 1</option>
+              <option value="2">Grupo 2</option>
+              <option value="3">Grupo 3</option>
+              <option value="4">Grupo 4</option>
+            </select>
+          </div>
+
+          <!-- Filtro Mesa -->
+          <div class="filter-control-wrap">
+            <label for="filter-matches-table">Mesa</label>
+            <select class="filter-select" id="filter-matches-table">
+              <option value="all">Todas las Mesas (1, 2 y 3)</option>
+              <option value="Mesa 1">Mesa 1</option>
+              <option value="Mesa 2">Mesa 2</option>
+              <option value="Mesa 3">Mesa 3</option>
+            </select>
+          </div>
+
+          <!-- Filtro Horario / Día -->
+          <div class="filter-control-wrap">
+            <label for="filter-matches-hour">Horario / Día</label>
+            <select class="filter-select" id="filter-matches-hour">
+              <option value="all">Todos los Horarios</option>
+              <optgroup label="Viernes">
+                <option value="Viernes 12:00">Viernes · 12:00</option>
+                <option value="Viernes 14:00">Viernes · 14:00</option>
+                <option value="Viernes 16:00">Viernes · 16:00</option>
+                <option value="Viernes 18:00">Viernes · 18:00</option>
+                <option value="Viernes 20:00">Viernes · 20:00</option>
+              </optgroup>
+              <optgroup label="Sábado">
+                <option value="Sábado 09:00">Sábado · 09:00</option>
+                <option value="Sábado 11:00">Sábado · 11:00</option>
+                <option value="Sábado 13:00">Sábado · 13:00</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Filtro Estado -->
+          <div class="filter-control-wrap">
+            <label for="filter-matches-status">Estado</label>
+            <select class="filter-select" id="filter-matches-status">
+              <option value="all">Todos los Estados</option>
+              <option value="pending">⏳ Pendientes</option>
+              <option value="in_progress">🔴 En juego</option>
+              <option value="completed">🏆 Finalizados</option>
+            </select>
+          </div>
+
+          <!-- Botón Reset Filtros -->
+          <div class="filter-control-wrap" style="align-items:flex-end;">
+            <button type="button" class="btn-reset-filters" id="btn-reset-match-filters">
+              ✖️ Limpiar Filtros
+            </button>
+          </div>
+
         </div>
+
+        <div style="display:flex; justify-content:flex-end;">
+          <span class="match-count-badge" id="filtered-matches-counter">Mostrando 24 de 24 partidos</span>
+        </div>
+
       </div>
 
       <!-- Grid de Partidos por Grupo -->
@@ -153,36 +226,40 @@
          TAB 2: GRUPOS (STANDINGS)
          ==================================================================== -->
     <section class="tab-pane" id="tab-groups">
-      <div class="section-toolbar">
-        <div class="toolbar-title">
-          <span>🏆</span>
-          <span>Clasificación en Vivo de Grupos</span>
-        </div>
-
-        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-          <div class="venue-segmented-control">
-            <button type="button" class="venue-pill-btn active" data-venue="vallecas">
-              📍 Vallecas (Grupos 1-4)
-            </button>
-            <button type="button" class="venue-pill-btn" data-venue="alcobendas">
-              📍 Alcobendas (Grupos 5-8)
-            </button>
+      <div class="section-toolbar-advanced">
+        <div class="toolbar-top-row">
+          <div class="toolbar-title">
+            <span>🏆</span>
+            <span>Clasificación en Vivo de Grupos</span>
           </div>
 
-          <select class="filter-group-select" id="filter-group-standings" aria-label="Filtrar grupos en clasificación">
-            <option value="all">Todos los Grupos (1 al 4)</option>
-            <option value="1">Grupo 1</option>
-            <option value="2">Grupo 2</option>
-            <option value="3">Grupo 3</option>
-            <option value="4">Grupo 4</option>
-          </select>
+          <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <div class="venue-segmented-control">
+              <button type="button" class="venue-pill-btn active" data-venue="vallecas">
+                📍 Vallecas (Grupos 1-4)
+              </button>
+              <button type="button" class="venue-pill-btn" data-venue="alcobendas">
+                📍 Alcobendas (Grupos 5-8)
+              </button>
+            </div>
+
+            <select class="filter-select" id="filter-group-standings" aria-label="Filtrar grupos en clasificación">
+              <option value="all">Todos los Grupos (1 al 4)</option>
+              <option value="1">Grupo 1</option>
+              <option value="2">Grupo 2</option>
+              <option value="3">Grupo 3</option>
+              <option value="4">Grupo 4</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <div class="info-notice">
         <span>⭐</span>
         <div>
-          <strong>Criterio de Desempate Oficial:</strong> En caso de igualdad en partidos y frames ganados, el desempate se determina por <strong>Puntos Totales Acumulados</strong>. Los <strong>2 primeros clasificados (1º y 2º)</strong> de cada grupo avanzan a <strong>Octavos de Final</strong>.
+          <strong>Criterio Oficial de Clasificación y Desempate:</strong> 
+          1º Partidos Ganados (PG) | 2º Frames Ganados (FG) | 3º <strong>Puntos Totales Acumulados</strong> (desempate primordial) | 4º Enfrentamiento directo. 
+          Los <strong>2 primeros puestos (1º y 2º)</strong> clasifican directamente a <strong>Octavos de Final</strong>.
         </div>
       </div>
 
@@ -190,34 +267,19 @@
       <div class="standings-grid" id="standings-container">
         <!-- Renderizado dinámicamente -->
       </div>
-
-      <div class="standings-legend">
-        <div class="legend-item">
-          <span class="legend-color" style="background:var(--gold-light);"></span>
-          <span>1º Puesto: Clasifica a Octavos como cabeza de serie</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color" style="background:#cbd5e1;"></span>
-          <span>2º Puesto: Clasifica a Octavos</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color" style="background:var(--snooker-green-light);"></span>
-          <span>⭐ Puntos Totales: Desempate principal</span>
-        </div>
-      </div>
     </section>
 
     <!-- ====================================================================
          TAB 3: DESGLOSE POR FRAME (FRAMES)
          ==================================================================== -->
     <section class="tab-pane" id="tab-frames">
-      <div class="section-toolbar">
-        <div class="toolbar-title">
-          <span>📈</span>
-          <span>Desglose y Auditoría Frame a Frame</span>
-        </div>
+      <div class="section-toolbar-advanced">
+        <div class="toolbar-top-row">
+          <div class="toolbar-title">
+            <span>📈</span>
+            <span>Desglose y Auditoría Frame a Frame</span>
+          </div>
 
-        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
           <div class="venue-segmented-control">
             <button type="button" class="venue-pill-btn active" data-venue="vallecas">
               📍 Vallecas (Grupos 1-4)
@@ -226,21 +288,13 @@
               📍 Alcobendas (Grupos 5-8)
             </button>
           </div>
-
-          <select class="filter-group-select" id="filter-group-frames" aria-label="Filtrar frames">
-            <option value="all">Todos los Grupos</option>
-            <option value="1">Grupo 1</option>
-            <option value="2">Grupo 2</option>
-            <option value="3">Grupo 3</option>
-            <option value="4">Grupo 4</option>
-          </select>
         </div>
       </div>
 
       <div class="info-notice">
         <span>🔍</span>
         <div>
-          Registro pormenorizado de cada frame disputado con marcadores individuales, ganador y diferencia de puntos.
+          Registro pormenorizado de cada frame individual con marcadores, ganador y diferencia de puntos para verificación.
         </div>
       </div>
 
@@ -253,18 +307,20 @@
          TAB 4: FASE FINAL (OCTAVOS -> CUARTOS -> SEMIS -> FINAL)
          ==================================================================== -->
     <section class="tab-pane" id="tab-playoffs">
-      <div class="section-toolbar">
-        <div class="toolbar-title">
-          <span>👑</span>
-          <span>Cuadro de Fase Final (Octavos de Final a Gran Final)</span>
+      <div class="section-toolbar-advanced">
+        <div class="toolbar-top-row">
+          <div class="toolbar-title">
+            <span>👑</span>
+            <span>Cuadro de Fase Final (Octavos a Gran Final)</span>
+          </div>
         </div>
       </div>
 
       <div class="info-notice">
         <span>🏆</span>
         <div>
-          La fase final comienza en <strong>Octavos de Final</strong> con los 16 clasificados (1º y 2º de cada grupo): 
-          <strong>1º Gr1 vs 2º Gr2, 1º Gr2 vs 2º Gr1, 1º Gr3 vs 2º Gr4, 1º Gr4 vs 2º Gr3, etc.</strong> 
+          La fase final comienza directamente en <strong>Octavos de Final (16 clasificados)</strong> alimentados de los grupos: 
+          <strong>1º Gr1 vs 2º Gr2, 1º Gr2 vs 2º Gr1, 1º Gr3 vs 2º Gr4, etc.</strong> 
           Las Semifinales se disputan el Domingo a las 09:00 y la Gran Final el Domingo a las 13:00.
         </div>
       </div>
@@ -278,18 +334,21 @@
          TAB 5: ADMINISTRACIÓN (ADMIN)
          ==================================================================== -->
     <section class="tab-pane" id="tab-admin">
-      <div class="section-toolbar">
-        <div class="toolbar-title">
-          <span>⚙️</span>
-          <span>Panel de Administración y Configuración</span>
+      <div class="section-toolbar-advanced">
+        <div class="toolbar-top-row">
+          <div class="toolbar-title">
+            <span>⚙️</span>
+            <span>Panel de Administración y Control</span>
+          </div>
         </div>
       </div>
 
       <div class="admin-grid">
-        <!-- Tarjeta de Sincronización Supabase / JSON -->
+        
+        <!-- Sincronización Supabase / JSON -->
         <div class="admin-card">
-          <h3>💾 Sincronización y Copias de Seguridad</h3>
-          <p>Los datos se guardan y sincronizan en <strong>Supabase</strong> en tiempo real para todos los espectadores. También puedes descargar un archivo de respaldo en JSON.</p>
+          <h3>💾 Sincronización en Supabase</h3>
+          <p>Los datos se guardan y sincronizan en la nube (Supabase) para todos los espectadores en tiempo real. También puedes descargar o restaurar copias JSON.</p>
           <div class="admin-btn-group">
             <button type="button" class="btn-admin-action btn-primary" id="btn-export-json">
               📥 Descargar Backup JSON
@@ -298,13 +357,16 @@
               📤 Restaurar Backup JSON
               <input type="file" id="file-import-json" accept=".json" style="display:none;">
             </label>
+            <button type="button" class="btn-admin-action" onclick="syncFromSupabase()">
+              🔄 Forzar Sincronización con Supabase
+            </button>
           </div>
         </div>
 
-        <!-- Tarjeta de Reinicio -->
+        <!-- Reinicio de Torneo -->
         <div class="admin-card">
           <h3 style="color:#fca5a5;">⚠️ Zona de Peligro / Reinicio</h3>
-          <p>Reinicia todos los resultados del torneo en la base de datos de Supabase. Requiere confirmación de seguridad.</p>
+          <p>Reinicia todos los resultados de los partidos y restaura el torneo en la base de datos de Supabase.</p>
           <div class="admin-btn-group">
             <button type="button" class="btn-admin-action btn-danger" id="btn-open-reset-modal">
               🔄 Reiniciar Torneo
@@ -312,22 +374,23 @@
           </div>
         </div>
 
-        <!-- Editor de Nombres de Jugadores -->
-        <div class="admin-card player-names-editor-wrap">
+        <!-- Editor de Jugadores -->
+        <div class="admin-card" style="grid-column: 1 / -1;">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
             <div>
               <h3>👥 Gestión de Jugadores (32 Jugadores)</h3>
-              <p>Personaliza los nombres de los 32 jugadores. Se sincronizarán automáticamente en todos los grupos y partidos.</p>
+              <p>Edita los nombres de los 32 jugadores. Se actualizarán inmediatamente en todos los grupos, partidos y cuadros.</p>
             </div>
             <button type="button" class="btn-quick-save" id="btn-save-player-names">
               💾 Guardar Todos los Nombres
             </button>
           </div>
 
-          <div class="player-inputs-grid" id="admin-player-inputs">
+          <div class="player-inputs-grid" id="admin-player-inputs" style="margin-top:1rem; display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:0.85rem; max-height:480px; overflow-y:auto;">
             <!-- Renderizado dinámicamente -->
           </div>
         </div>
+
       </div>
     </section>
 
@@ -337,7 +400,7 @@
        MODALES
        ==================================================================== -->
 
-  <!-- Modal de Login Administrador -->
+  <!-- Modal de Login Administrador (blackpool123) -->
   <div class="modal-backdrop" id="modal-admin-login" role="dialog" aria-modal="true">
     <div class="modal-dialog">
       <div class="modal-header">
@@ -345,23 +408,80 @@
         <button type="button" class="modal-close-btn" id="btn-cancel-admin-login" aria-label="Cerrar modal">&times;</button>
       </div>
       <div>
-        <p style="margin-bottom:1rem; color:var(--text-muted); font-size:0.92rem;">
-          Introduce la contraseña de administrador para desbloquear la edición de marcadores, horarios, breaks y gestión del torneo.
+        <p style="margin-bottom:1rem; color:var(--text-muted); font-size:0.95rem;">
+          Introduce la contraseña de administración (<strong>blackpool123</strong>) para habilitar la edición de marcadores, breaks y horarios:
         </p>
-        <input type="password" id="txt-admin-password" class="admin-password-input" placeholder="Contraseña de administrador" autofocus>
+        <input type="password" id="txt-admin-password" class="admin-password-input" placeholder="Introduce blackpool123" autofocus>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-admin-action" onclick="document.getElementById('modal-admin-login').classList.remove('is-open')">Cancelar</button>
-        <button type="button" class="btn-admin-action btn-primary" id="btn-submit-admin-login">Desbloquear</button>
+        <button type="button" class="btn-admin-action btn-primary" id="btn-submit-admin-login">Desbloquear Modo Admin</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal de Reinicio Seguro -->
+  <!-- Modal SQL Supabase Helper -->
+  <div class="modal-backdrop" id="modal-supabase-sql" role="dialog" aria-modal="true">
+    <div class="modal-dialog" style="max-width:680px;">
+      <div class="modal-header">
+        <h3>📋 Configurar Tabla en Supabase (Solo 1 vez)</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-sql-modal" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div>
+        <p style="margin-bottom:0.75rem; color:var(--text-muted); font-size:0.9rem;">
+          Para que todos los espectadores y móviles vean las puntuaciones en vivo, sigue estos 3 pasos:
+        </p>
+        <ol style="margin-left:1.5rem; margin-bottom:1rem; color:var(--gold-light); font-size:0.88rem; line-height:1.6;">
+          <li>Abre tu panel en <a href="https://supabase.com/dashboard" target="_blank" style="color:#86efac; text-decoration:underline;">supabase.com/dashboard</a></li>
+          <li>En el menú de la izquierda, entra a <strong>SQL Editor</strong> -> <strong>New Query</strong></li>
+          <li>Pega el siguiente código y pulsa <strong>Run</strong>:</li>
+        </ol>
+        <pre id="sql-code-display" style="background:#07080e; padding:1rem; border-radius:6px; border:1px solid var(--border-color); font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#86efac; max-height:220px; overflow-y:auto; white-space:pre-wrap;">
+CREATE TABLE IF NOT EXISTS public.tournament_state (
+    id TEXT PRIMARY KEY DEFAULT 'current',
+    title TEXT NOT NULL DEFAULT 'Torneo Snooker Blackpool Madrid',
+    state JSONB NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.tournament_state ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir lectura publica a todos los usuarios" ON public.tournament_state;
+DROP POLICY IF EXISTS "Permitir actualizacion del torneo" ON public.tournament_state;
+
+CREATE POLICY "Permitir lectura publica a todos los usuarios"
+ON public.tournament_state FOR SELECT USING (true);
+
+CREATE POLICY "Permitir actualizacion del torneo"
+ON public.tournament_state FOR ALL USING (true) WITH CHECK (true);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'tournament_state'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.tournament_state;
+  END IF;
+END $$;</pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-admin-action btn-primary" id="btn-copy-sql-code">
+          📋 Copiar Código SQL
+        </button>
+        <button type="button" class="btn-admin-action" onclick="document.getElementById('modal-supabase-sql').classList.remove('is-open')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Reinicio Seguro -->
   <div class="modal-backdrop" id="modal-reset" role="dialog" aria-modal="true">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 style="color:#fca5a5;">⚠️ Advertencia de Seguridad</h3>
+        <h3 style="color:#fca5a5;">⚠️ Confirmación de Seguridad</h3>
         <button type="button" class="modal-close-btn" id="btn-cancel-reset" aria-label="Cerrar modal">&times;</button>
       </div>
       <div>
@@ -380,18 +500,18 @@
     </div>
   </div>
 
-  <!-- Modal de Compartir QR -->
+  <!-- Modal QR Oficial -->
   <div class="modal-backdrop" id="modal-qr" role="dialog" aria-modal="true">
     <div class="modal-dialog">
       <div class="modal-header">
         <h3>📱 Compartir Torneo en Vivo</h3>
         <button type="button" class="modal-close-btn" id="btn-close-qr" aria-label="Cerrar modal">&times;</button>
       </div>
-      <div class="qr-modal-content">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:1rem; text-align:center;">
         <p style="font-size:0.9rem; color:var(--text-muted);">
-          Escanea el código QR para acceder a la web oficial en Netlify con actualización en tiempo real desde Supabase:
+          Escanea el código QR con cualquier móvil o tablet para ver las puntuaciones en tiempo real:
         </p>
-        <div class="qr-canvas-container" id="qr-canvas-wrap">
+        <div style="background:#fff; padding:1rem; border-radius:12px; box-shadow:var(--shadow-md);" id="qr-canvas-wrap">
           <!-- QR renderizado aquí -->
         </div>
       </div>
@@ -401,7 +521,7 @@
   <!-- FOOTER -->
   <footer class="app-footer">
     <p>🎱 <strong>Torneo Snooker Blackpool Madrid</strong> | Sedes Vallecas & Alcobendas</p>
-    <p style="margin-top:0.35rem; color:var(--text-dim);">Base de datos en tiempo real con Supabase | Despliegue en Netlify</p>
+    <p style="margin-top:0.35rem; color:var(--text-dim);">Sincronización en vivo con Supabase | Despliegue oficial en Netlify</p>
   </footer>
 
   <!-- SCRIPTS -->

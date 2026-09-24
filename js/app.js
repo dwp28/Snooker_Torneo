@@ -1,14 +1,21 @@
 /**
- * TORNEO SNOOKER BLACKPOOL MADRID - APP CONTROLLER V2
- * Conexión Supabase en Tiempo Real, Modo Administrador Seguro y UI Mejorada
+ * TORNEO SNOOKER BLACKPOOL MADRID - APP CONTROLLER V3
+ * Filtros Intuitivos por Grupo, Mesa y Hora | Nombres Grandes | Supabase Live Sync
  */
 
 let tournamentState = null;
 let currentTab = 'matches';
 let currentVenue = 'vallecas';
-let currentGroupFilter = 'all';
+
+// Filtros avanzados para partidos
+let filterGroup = 'all';
+let filterTable = 'all';
+let filterHour = 'all';
+let filterStatus = 'all';
+
 let isAdminAuthenticated = false;
 let autoSyncInterval = null;
+let isSupabaseTableMissing = false;
 
 const PUBLIC_NETLIFY_URL = 'https://snookertorneomadrid.netlify.app/';
 
@@ -20,27 +27,40 @@ async function initApp() {
   checkAdminAuth();
   updateAdminUIState();
 
-  // Cargar datos locales primero para inicio instantáneo
+  // 1. Cargar datos locales primero para disponibilidad instantánea
   tournamentState = loadTournamentDataLocal();
   setupNavigation();
   setupEventListeners();
   renderAllViews();
   updateHeaderStats();
 
-  // Sincronizar con Supabase en segundo plano
+  // 2. Conectar y sincronizar con Supabase
   await syncFromSupabase();
 
-  // Polling cada 12 segundos para actualizar espectadores en tiempo real
+  // 3. Polling en tiempo real cada 10 segundos
   if (autoSyncInterval) clearInterval(autoSyncInterval);
   autoSyncInterval = setInterval(async () => {
     if (!document.hidden) {
       await syncFromSupabase(true);
     }
-  }, 12000);
+  }, 10000);
 }
 
 function checkAdminAuth() {
-  isAdminAuthenticated = sessionStorage.getItem('SNOOKER_ADMIN_AUTH') === 'true';
+  const session = sessionStorage.getItem('SNOOKER_ADMIN_AUTH') || localStorage.getItem('SNOOKER_ADMIN_AUTH');
+  isAdminAuthenticated = session === 'true';
+}
+
+function setAdminAuth(isAuth) {
+  isAdminAuthenticated = isAuth;
+  if (isAuth) {
+    sessionStorage.setItem('SNOOKER_ADMIN_AUTH', 'true');
+    localStorage.setItem('SNOOKER_ADMIN_AUTH', 'true');
+  } else {
+    sessionStorage.removeItem('SNOOKER_ADMIN_AUTH');
+    localStorage.removeItem('SNOOKER_ADMIN_AUTH');
+  }
+  updateAdminUIState();
 }
 
 function updateAdminUIState() {
@@ -64,21 +84,39 @@ function updateAdminUIState() {
 
 async function syncFromSupabase(silent = false) {
   try {
-    const remoteData = await loadTournamentDataAsync();
-    if (remoteData && remoteData.groups && remoteData.players) {
-      tournamentState = remoteData;
-      renderAllViews();
-      updateHeaderStats();
-      if (!silent) {
-        setSyncStatus('Conectado a Supabase (En vivo)', true);
+    const result = await loadTournamentDataAsync();
+    isSupabaseTableMissing = result.isTableMissing;
+
+    updateSupabaseAlertBanner();
+
+    if (result.success && result.state) {
+      const remoteTs = result.state.lastUpdated || '';
+      const localTs = tournamentState ? (tournamentState.lastUpdated || '') : '';
+
+      // Solo actualizar la vista si el estado remoto es más reciente (o primera carga)
+      // Esto evita que el polling sobreescriba cambios que el admin acaba de guardar
+      if (!tournamentState || remoteTs > localTs || !silent) {
+        tournamentState = result.state;
+        renderAllViews();
+        updateHeaderStats();
       }
+
+      if (!silent) {
+        setSyncStatus('Conectado • Supabase en vivo', true);
+      } else {
+        setSyncStatus('🟢 En vivo (Supabase)', true);
+      }
+    } else if (result.isTableMissing) {
+      setSyncStatus('⚠️ Tabla no creada en Supabase', false);
+    } else {
+      setSyncStatus('📂 Modo local (sin conexión)', false);
     }
   } catch (e) {
-    if (!silent) {
-      setSyncStatus('Modo local (Sin conexión)', false);
-    }
+    console.error('Error durante sincronización Supabase:', e);
+    if (!silent) setSyncStatus('Error de sincronización', false);
   }
 }
+
 
 function setSyncStatus(text, isOnline) {
   const syncEl = document.getElementById('sync-status-text');
@@ -86,8 +124,14 @@ function setSyncStatus(text, isOnline) {
   if (syncEl) syncEl.textContent = text;
   if (dotEl) {
     dotEl.style.background = isOnline ? 'var(--snooker-green-light)' : '#fca5a5';
-    dotEl.style.boxShadow = isOnline ? '0 0 8px var(--snooker-green-light)' : '0 0 8px #fca5a5';
+    dotEl.style.boxShadow = isOnline ? '0 0 9px var(--snooker-green-light)' : '0 0 9px #fca5a5';
   }
+}
+
+function updateSupabaseAlertBanner() {
+  const banner = document.getElementById('supabase-missing-banner');
+  if (!banner) return;
+  banner.style.display = isSupabaseTableMissing ? 'flex' : 'none';
 }
 
 /**
@@ -108,12 +152,70 @@ function setupNavigation() {
     });
   });
 
-  document.querySelectorAll('.filter-group-select').forEach(select => {
-    select.addEventListener('change', (e) => {
-      currentGroupFilter = e.target.value;
-      renderCurrentView();
+  // Filtros de Partidos
+  const selGroup = document.getElementById('filter-matches-group');
+  const selTable = document.getElementById('filter-matches-table');
+  const selHour = document.getElementById('filter-matches-hour');
+  const selStatus = document.getElementById('filter-matches-status');
+  const btnReset = document.getElementById('btn-reset-match-filters');
+
+  if (selGroup) {
+    selGroup.addEventListener('change', (e) => {
+      filterGroup = e.target.value;
+      renderMatchesView();
     });
-  });
+  }
+  if (selTable) {
+    selTable.addEventListener('change', (e) => {
+      filterTable = e.target.value;
+      renderMatchesView();
+    });
+  }
+  if (selHour) {
+    selHour.addEventListener('change', (e) => {
+      filterHour = e.target.value;
+      renderMatchesView();
+    });
+  }
+  if (selStatus) {
+    selStatus.addEventListener('change', (e) => {
+      filterStatus = e.target.value;
+      renderMatchesView();
+    });
+  }
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      resetMatchFilters();
+    });
+  }
+
+  // Filtro en pestaña Grupos
+  const selStandingsGroup = document.getElementById('filter-group-standings');
+  if (selStandingsGroup) {
+    selStandingsGroup.addEventListener('change', (e) => {
+      filterGroup = e.target.value;
+      renderStandingsView();
+    });
+  }
+}
+
+function resetMatchFilters() {
+  filterGroup = 'all';
+  filterTable = 'all';
+  filterHour = 'all';
+  filterStatus = 'all';
+
+  const g = document.getElementById('filter-matches-group');
+  const t = document.getElementById('filter-matches-table');
+  const h = document.getElementById('filter-matches-hour');
+  const s = document.getElementById('filter-matches-status');
+
+  if (g) g.value = 'all';
+  if (t) t.value = 'all';
+  if (h) h.value = 'all';
+  if (s) s.value = 'all';
+
+  renderMatchesView();
 }
 
 function switchTab(tabId) {
@@ -133,25 +235,30 @@ function switchVenue(venueId) {
     b.classList.toggle('active', b.getAttribute('data-venue') === venueId);
   });
   updateGroupFilterOptions();
+  resetMatchFilters();
   renderCurrentView();
 }
 
 function updateGroupFilterOptions() {
   const groupIndices = VENUES[currentVenue.toUpperCase()].groupIndices;
-  const filterSelects = document.querySelectorAll('.filter-group-select');
+  const filterSelects = [
+    document.getElementById('filter-matches-group'),
+    document.getElementById('filter-group-standings')
+  ];
+
   filterSelects.forEach(select => {
+    if (!select) return;
     select.innerHTML = `<option value="all">Todos los Grupos (${currentVenue === 'vallecas' ? '1 al 4' : '5 al 8'})</option>` +
       groupIndices.map(g => `<option value="${g}">Grupo ${g}</option>`).join('');
     select.value = 'all';
   });
-  currentGroupFilter = 'all';
 }
 
 /**
- * Event Listeners y Modales
+ * Event Listeners & Modales
  */
 function setupEventListeners() {
-  // Modal Login Admin
+  // Modal Login Admin (Contraseña blackpool123)
   const btnLoginTrigger = document.getElementById('btn-login-admin-trigger');
   const modalLogin = document.getElementById('modal-admin-login');
   const btnSubmitLogin = document.getElementById('btn-submit-admin-login');
@@ -176,38 +283,53 @@ function setupEventListeners() {
   if (btnSubmitLogin) {
     btnSubmitLogin.addEventListener('click', () => {
       const pass = txtPassword ? txtPassword.value.trim() : '';
-      if (pass === ADMIN_PASSWORD_HASH) {
-        sessionStorage.setItem('SNOOKER_ADMIN_AUTH', 'true');
-        isAdminAuthenticated = true;
-        updateAdminUIState();
+      if (ADMIN_PASSWORDS.includes(pass)) {
+        setAdminAuth(true);
         modalLogin.classList.remove('is-open');
-        showToast('🔓 Modo Administrador Activado', 'success');
+        showToast('🔓 Modo Administrador desbloqueado con éxito', 'success');
         renderAllViews();
       } else {
-        alert('❌ Contraseña incorrecta. Por favor vuelve a intentarlo.');
+        alert('❌ Contraseña incorrecta. Utiliza la contraseña oficial (blackpool123).');
       }
     });
   }
 
   if (txtPassword) {
     txtPassword.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        btnSubmitLogin.click();
-      }
+      if (e.key === 'Enter') btnSubmitLogin.click();
     });
   }
 
   if (btnLogoutTrigger) {
     btnLogoutTrigger.addEventListener('click', () => {
-      sessionStorage.removeItem('SNOOKER_ADMIN_AUTH');
-      isAdminAuthenticated = false;
-      updateAdminUIState();
+      setAdminAuth(false);
       showToast('🔒 Sesión de Administrador cerrada', 'info');
       renderAllViews();
     });
   }
 
-  // Modal de reinicio
+  // Modal SQL Supabase Helper
+  const btnOpenSql = document.getElementById('btn-open-sql-modal');
+  const modalSql = document.getElementById('modal-supabase-sql');
+  const btnCloseSql = document.getElementById('btn-close-sql-modal');
+  const btnCopySql = document.getElementById('btn-copy-sql-code');
+
+  if (btnOpenSql && modalSql) {
+    btnOpenSql.addEventListener('click', () => modalSql.classList.add('is-open'));
+  }
+  if (btnCloseSql && modalSql) {
+    btnCloseSql.addEventListener('click', () => modalSql.classList.remove('is-open'));
+  }
+  if (btnCopySql) {
+    btnCopySql.addEventListener('click', () => {
+      const code = document.getElementById('sql-code-display')?.textContent || '';
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('📋 Código SQL copiado al portapapeles', 'success');
+      });
+    });
+  }
+
+  // Modal Reinicio
   const btnOpenReset = document.getElementById('btn-open-reset-modal');
   const modalReset = document.getElementById('modal-reset');
   const btnConfirmReset = document.getElementById('btn-confirm-reset');
@@ -216,7 +338,7 @@ function setupEventListeners() {
   if (btnOpenReset) {
     btnOpenReset.addEventListener('click', () => {
       if (!isAdminAuthenticated) {
-        showToast('⚠️ Debes iniciar sesión como Administrador para reiniciar', 'warning');
+        showToast('⚠️ Debes identificarte como Administrador', 'warning');
         if (btnLoginTrigger) btnLoginTrigger.click();
         return;
       }
@@ -225,9 +347,7 @@ function setupEventListeners() {
   }
 
   if (btnCancelReset && modalReset) {
-    btnCancelReset.addEventListener('click', () => {
-      modalReset.classList.remove('is-open');
-    });
+    btnCancelReset.addEventListener('click', () => modalReset.classList.remove('is-open'));
   }
 
   if (btnConfirmReset && modalReset) {
@@ -235,7 +355,7 @@ function setupEventListeners() {
       const resetPlayers = document.getElementById('chk-reset-names')?.checked || false;
       await resetTournament(resetPlayers);
       modalReset.classList.remove('is-open');
-      showToast('🔄 Torneo reiniciado y sincronizado en Supabase', 'success');
+      showToast('🔄 Torneo reiniciado y sincronizado', 'success');
     });
   }
 
@@ -252,41 +372,28 @@ function setupEventListeners() {
   }
 
   if (btnCloseQR && modalQR) {
-    btnCloseQR.addEventListener('click', () => {
-      modalQR.classList.remove('is-open');
-    });
+    btnCloseQR.addEventListener('click', () => modalQR.classList.remove('is-open'));
   }
 
   // Exportar / Importar
   const btnExport = document.getElementById('btn-export-json');
-  if (btnExport) {
-    btnExport.addEventListener('click', exportTournamentJSON);
-  }
+  if (btnExport) btnExport.addEventListener('click', exportTournamentJSON);
 
   const fileInputImport = document.getElementById('file-import-json');
-  if (fileInputImport) {
-    fileInputImport.addEventListener('change', handleImportFile);
-  }
+  if (fileInputImport) fileInputImport.addEventListener('change', handleImportFile);
 
-  // Guardar todos los nombres de jugadores
+  // Guardar nombres
   const btnSaveAllNames = document.getElementById('btn-save-player-names');
-  if (btnSaveAllNames) {
-    btnSaveAllNames.addEventListener('click', savePlayerNamesFromAdmin);
-  }
+  if (btnSaveAllNames) btnSaveAllNames.addEventListener('click', savePlayerNamesFromAdmin);
 
-  // Cerrar modales al hacer clic fuera
+  // Cerrar modales clicando fuera
   document.querySelectorAll('.modal-backdrop').forEach(modal => {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.remove('is-open');
-      }
+      if (e.target === modal) modal.classList.remove('is-open');
     });
   });
 }
 
-/**
- * Renderizado de Vistas
- */
 function renderAllViews() {
   updatePlayoffQualifiers(tournamentState);
   renderMatchesView();
@@ -346,7 +453,7 @@ function updateHeaderStats() {
 
 /**
  * =========================================================================
- * VISTA 1: PARTIDOS (MATCHES VIEW) - REDISEÑADA
+ * VISTA 1: PARTIDOS (MATCHES VIEW) - FILTRADA Y REDISEÑADA
  * =========================================================================
  */
 function renderMatchesView() {
@@ -354,19 +461,71 @@ function renderMatchesView() {
   if (!container) return;
 
   const targetGroupIndices = VENUES[currentVenue.toUpperCase()].groupIndices;
-  const filteredIndices = (currentGroupFilter === 'all') 
-    ? targetGroupIndices 
-    : targetGroupIndices.filter(g => g.toString() === currentGroupFilter.toString());
 
-  if (filteredIndices.length === 0) {
-    container.innerHTML = `<div class="info-notice">No hay grupos seleccionados.</div>`;
+  // Recolectar todos los partidos de la sede seleccionada
+  let allVenueMatches = [];
+  targetGroupIndices.forEach(gId => {
+    const g = tournamentState.groups[gId];
+    g.matches.forEach(m => {
+      allVenueMatches.push({ match: m, group: g });
+    });
+  });
+
+  // Aplicar filtros: Grupo, Mesa, Hora, Estado
+  let filtered = allVenueMatches.filter(({ match, group }) => {
+    // 1. Filtro por grupo
+    if (filterGroup !== 'all' && group.id.toString() !== filterGroup.toString()) {
+      return false;
+    }
+    // 2. Filtro por mesa
+    if (filterTable !== 'all' && match.table !== filterTable) {
+      return false;
+    }
+    // 3. Filtro por hora/día
+    if (filterHour !== 'all') {
+      const matchScheduleStr = `${match.day} ${match.time}`;
+      if (matchScheduleStr !== filterHour) return false;
+    }
+    // 4. Filtro por estado
+    if (filterStatus !== 'all') {
+      const isCompleted = (match.isCompleted || match.p1FramesWon >= 2 || match.p2FramesWon >= 2);
+      const isProgress = !isCompleted && (match.p1FramesWon > 0 || match.p2FramesWon > 0 || match.frames.some(f => f.p1Points !== null || f.p2Points !== null));
+      const isPending = !isCompleted && !isProgress;
+
+      if (filterStatus === 'completed' && !isCompleted) return false;
+      if (filterStatus === 'in_progress' && !isProgress) return false;
+      if (filterStatus === 'pending' && !isPending) return false;
+    }
+    return true;
+  });
+
+  // Actualizar contador de partidos
+  const countBadge = document.getElementById('filtered-matches-counter');
+  if (countBadge) {
+    countBadge.textContent = `Mostrando ${filtered.length} de ${allVenueMatches.length} partidos`;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="info-notice" style="text-align:center; justify-content:center;">
+        <span>🔍</span>
+        <div>No se encontraron partidos con los filtros seleccionados. <button type="button" class="btn-clear-match" onclick="resetMatchFilters()" style="color:var(--gold-light); font-weight:800; text-decoration:underline;">Restablecer filtros</button></div>
+      </div>
+    `;
     return;
   }
 
-  let html = '';
+  // Agrupar los partidos filtrados por grupo
+  const matchesByGroup = {};
+  filtered.forEach(({ match, group }) => {
+    if (!matchesByGroup[group.id]) {
+      matchesByGroup[group.id] = { group, matches: [] };
+    }
+    matchesByGroup[group.id].matches.push(match);
+  });
 
-  filteredIndices.forEach(groupId => {
-    const group = tournamentState.groups[groupId];
+  let html = '';
+  Object.values(matchesByGroup).forEach(({ group, matches }) => {
     const groupStatus = getGroupStatus(group);
 
     html += `
@@ -375,7 +534,7 @@ function renderMatchesView() {
           <div class="group-title-wrap">
             <span class="group-badge-num">${group.id}</span>
             <div>
-              <h2>${group.name} - ${group.venueName}</h2>
+              <h2>${group.name} · ${group.venueName}</h2>
             </div>
           </div>
           <div class="group-players-chips">
@@ -385,7 +544,7 @@ function renderMatchesView() {
         </div>
         
         <div class="matches-list-grid">
-          ${group.matches.map(match => renderSingleMatchCard(match, group)).join('')}
+          ${matches.map(m => renderSingleMatchCard(m, group)).join('')}
         </div>
       </div>
     `;
@@ -399,28 +558,33 @@ function renderSingleMatchCard(match, group) {
   const p1 = tournamentState.players[match.player1Id] || { name: `Jugador ${match.player1Id}` };
   const p2 = tournamentState.players[match.player2Id] || { name: `Jugador ${match.player2Id}` };
 
+  const isCompleted = (match.isCompleted || match.p1FramesWon >= 2 || match.p2FramesWon >= 2);
+  const isInProgress = !isCompleted && (match.p1FramesWon > 0 || match.p2FramesWon > 0 || match.frames.some(f => f.p1Points !== null || f.p2Points !== null));
+
   let statusClass = 'badge-pending';
-  let statusText = 'Pendiente';
+  let statusText = '⏳ Pendiente';
   let cardClass = 'is-pending';
 
-  if (match.isCompleted || match.p1FramesWon >= 2 || match.p2FramesWon >= 2) {
+  if (isCompleted) {
     statusClass = 'badge-completed';
     statusText = '🏆 Finalizado';
     cardClass = 'is-completed';
-  } else if (match.p1FramesWon > 0 || match.p2FramesWon > 0 || match.frames.some(f => f.p1Points !== null || f.p2Points !== null)) {
+  } else if (isInProgress) {
     statusClass = 'badge-progress';
     statusText = '🔴 En juego';
     cardClass = 'in-progress';
   }
 
-  const p1IsWinner = match.winnerId === p1.id;
-  const p2IsWinner = match.winnerId === p2.id;
+  const p1IsWinner = isCompleted && match.winnerId === p1.id;
+  const p2IsWinner = isCompleted && match.winnerId === p2.id;
   const disabledAttr = !isAdminAuthenticated ? 'disabled' : '';
+
+  const winnerName = p1IsWinner ? p1.name : (p2IsWinner ? p2.name : null);
 
   return `
     <div class="match-card ${cardClass}" id="card-${match.id}" data-match-id="${match.id}">
       
-      <!-- Header de Horario y Mesa Destacados -->
+      <!-- Cabecera de Horario y Mesa -->
       <div class="match-card-schedule-header">
         <div class="schedule-badge-highlight">
           <span>🕒</span>
@@ -432,22 +596,36 @@ function renderSingleMatchCard(match, group) {
         </div>
       </div>
 
-      <!-- Enfrentamiento con Nombres y Marcador Grandes -->
+      ${isCompleted && winnerName ? `
+        <div class="match-finished-banner">
+          <span>🏆 GANADOR:</span>
+          <strong style="color:#fff; font-size:0.95rem;">${escapeHtml(winnerName)}</strong>
+          <span>(${match.p1FramesWon} - ${match.p2FramesWon})</span>
+        </div>
+      ` : ''}
+
+      <!-- Enfrentamiento con NOMBRES MUY GRANDES -->
       <div class="match-players-faceoff">
         <div class="player-side player-left">
-          <span class="player-name-display ${p1IsWinner ? 'is-winner' : ''}" title="${escapeHtml(p1.name)}">${p1IsWinner ? '🏆 ' : ''}${escapeHtml(p1.name)}</span>
+          <span class="player-name-display ${p1IsWinner ? 'is-winner' : ''}" title="${escapeHtml(p1.name)}">
+            ${p1IsWinner ? '🏆 ' : ''}${escapeHtml(p1.name)}
+          </span>
           <span class="player-frames-count" id="fcount-p1-${match.id}">${match.p1FramesWon}</span>
         </div>
+
         <div class="match-vs-divider">
           <span>VS</span>
         </div>
+
         <div class="player-side player-right">
-          <span class="player-name-display ${p2IsWinner ? 'is-winner' : ''}" title="${escapeHtml(p2.name)}">${escapeHtml(p2.name)}${p2IsWinner ? ' 🏆' : ''}</span>
+          <span class="player-name-display ${p2IsWinner ? 'is-winner' : ''}" title="${escapeHtml(p2.name)}">
+            ${escapeHtml(p2.name)}${p2IsWinner ? ' 🏆' : ''}
+          </span>
           <span class="player-frames-count" id="fcount-p2-${match.id}">${match.p2FramesWon}</span>
         </div>
       </div>
 
-      <!-- Highest Break / Break Máximo -->
+      <!-- Break Máximo -->
       <div class="match-highest-breaks-row">
         <div class="break-item-box">
           <span class="break-label">🔥 Break J1:</span>
@@ -533,8 +711,15 @@ function attachMatchInputListeners() {
 
   document.querySelectorAll('.btn-quick-save').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      await saveTournamentDataAsync(tournamentState);
-      showToast('💾 Partido guardado y sincronizado en Supabase', 'success');
+      const saveRes = await saveTournamentDataAsync(tournamentState);
+      if (saveRes.success) {
+        showToast('💾 Partido guardado y sincronizado en Supabase', 'success');
+      } else if (saveRes.isTableMissing) {
+        showToast('⚠️ Guardado local. Falta crear la tabla en Supabase.', 'warning');
+        updateSupabaseAlertBanner();
+      } else {
+        showToast('⚠️ Guardado local (revisa conexión)', 'warning');
+      }
       renderAllViews();
     });
   });
@@ -666,7 +851,7 @@ function findMatchById(matchId) {
 
 /**
  * =========================================================================
- * VISTA 2: GRUPOS (STANDINGS VIEW) - REDISEÑADA
+ * VISTA 2: GRUPOS (STANDINGS VIEW)
  * =========================================================================
  */
 function renderStandingsView() {
@@ -674,9 +859,9 @@ function renderStandingsView() {
   if (!container) return;
 
   const targetGroupIndices = VENUES[currentVenue.toUpperCase()].groupIndices;
-  const filteredIndices = (currentGroupFilter === 'all') 
+  const filteredIndices = (filterGroup === 'all') 
     ? targetGroupIndices 
-    : targetGroupIndices.filter(g => g.toString() === currentGroupFilter.toString());
+    : targetGroupIndices.filter(g => g.toString() === filterGroup.toString());
 
   let html = '';
 
@@ -691,7 +876,7 @@ function renderStandingsView() {
           <div class="group-title-wrap">
             <span class="group-badge-num">${group.id}</span>
             <div>
-              <h2 style="font-size:1.15rem; font-weight:800; color:#fff;">${group.name} - ${group.venueName}</h2>
+              <h2 style="font-size:1.2rem; font-weight:900; color:#fff;">${group.name} · ${group.venueName}</h2>
             </div>
           </div>
           <span class="match-status-badge ${groupStatus.badgeClass}">${groupStatus.icon} ${groupStatus.text}</span>
@@ -726,13 +911,13 @@ function renderStandingsView() {
                       </div>
                     </td>
                     <td class="num-cell">${row.matchesPlayed}</td>
-                    <td class="num-cell" style="color:#6ee7b7; font-weight:800;">${row.matchesWon}</td>
+                    <td class="num-cell" style="color:#86efac; font-weight:800;">${row.matchesWon}</td>
                     <td class="num-cell" style="color:var(--gold); font-weight:800;">${row.framesWon}</td>
                     <td class="num-cell" style="color:var(--text-dim);">${row.framesLost}</td>
-                    <td class="num-cell" style="color:var(--gold-light); font-weight:700;">${row.highestBreak > 0 ? row.highestBreak : '-'}</td>
+                    <td class="num-cell" style="color:var(--gold-light); font-weight:800;">${row.highestBreak > 0 ? row.highestBreak : '-'}</td>
                     <td class="num-cell points-cell">${row.totalPoints} pts</td>
                     <td class="num-cell">
-                      ${row.position <= 2 ? '<span style="color:#86efac; font-weight:800; font-size:0.84rem;">Octavos ✅</span>' : '<span style="color:var(--text-dim); font-size:0.8rem;">-</span>'}
+                      ${row.position <= 2 ? '<span style="color:#86efac; font-weight:900; font-size:0.88rem;">Octavos ✅</span>' : '<span style="color:var(--text-dim); font-size:0.8rem;">-</span>'}
                     </td>
                   </tr>
                 `;
@@ -757,9 +942,9 @@ function renderFramesView() {
   if (!container) return;
 
   const targetGroupIndices = VENUES[currentVenue.toUpperCase()].groupIndices;
-  const filteredIndices = (currentGroupFilter === 'all') 
+  const filteredIndices = (filterGroup === 'all') 
     ? targetGroupIndices 
-    : targetGroupIndices.filter(g => g.toString() === currentGroupFilter.toString());
+    : targetGroupIndices.filter(g => g.toString() === filterGroup.toString());
 
   let html = '';
 
@@ -767,15 +952,15 @@ function renderFramesView() {
     const group = tournamentState.groups[groupId];
 
     html += `
-      <div class="group-frame-breakdown-card">
+      <div class="group-frame-breakdown-card" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:1.5rem;">
         <div class="group-header-banner">
           <div class="group-title-wrap">
             <span class="group-badge-num">${group.id}</span>
-            <h2 style="font-size:1.1rem; font-weight:800;">Desglose Individual de Frames - ${group.name}</h2>
+            <h2 style="font-size:1.15rem; font-weight:800;">Desglose Individual de Frames · ${group.name}</h2>
           </div>
         </div>
 
-        <div class="frame-detail-rows">
+        <div style="display:flex; flex-direction:column; padding:0.5rem;">
           ${group.matches.map(m => {
             const p1 = tournamentState.players[m.player1Id] || { name: `Jugador ${m.player1Id}` };
             const p2 = tournamentState.players[m.player2Id] || { name: `Jugador ${m.player2Id}` };
@@ -790,24 +975,24 @@ function renderFramesView() {
               const diff = hasPlayed ? Math.abs(p1Pts - p2Pts) : null;
 
               return `
-                <div class="frame-detail-item">
-                  <div class="frame-detail-match-info">
-                    <span class="frame-badge-tag">Gr.${groupId} P${m.matchNumber} · F${fNum}</span>
-                    <span style="font-weight:700; color:#fff;">${escapeHtml(p1.name)} vs ${escapeHtml(p2.name)}</span>
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1rem; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.92rem; gap:1rem; flex-wrap:wrap;">
+                  <div style="display:flex; align-items:center; gap:0.75rem; min-width:280px;">
+                    <span style="background:var(--bg-surface); color:var(--gold); border:1px solid var(--border-gold); font-size:0.75rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:4px; font-family:'JetBrains Mono',monospace;">Gr.${groupId} P${m.matchNumber} · F${fNum}</span>
+                    <span style="font-weight:800; color:#fff;">${escapeHtml(p1.name)} vs ${escapeHtml(p2.name)}</span>
                     <span style="font-size:0.75rem; color:var(--text-dim);">(${m.day} ${m.time} · ${m.table})</span>
                   </div>
 
-                  <div class="frame-detail-scores">
-                    <div class="player-score-box">
+                  <div style="display:flex; align-items:center; gap:1.25rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
                       <span style="color: ${p1Wins ? '#86efac' : 'var(--text-main)'}; font-weight: ${p1Wins ? '800' : '600'};">${escapeHtml(p1.name)}</span>
-                      <span class="score-num-badge ${p1Wins ? 'winner' : ''}">${p1Pts !== null ? p1Pts : '-'}</span>
+                      <span class="score-num-badge ${p1Wins ? 'winner' : ''}" style="background:var(--bg-input); border:1px solid var(--border-color); padding:0.2rem 0.6rem; border-radius:4px; font-weight:800; font-family:'JetBrains Mono',monospace;">${p1Pts !== null ? p1Pts : '-'}</span>
                     </div>
                     <span style="color:var(--text-dim); font-size:0.85rem;">vs</span>
-                    <div class="player-score-box">
-                      <span class="score-num-badge ${p2Wins ? 'winner' : ''}">${p2Pts !== null ? p2Pts : '-'}</span>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                      <span class="score-num-badge ${p2Wins ? 'winner' : ''}" style="background:var(--bg-input); border:1px solid var(--border-color); padding:0.2rem 0.6rem; border-radius:4px; font-weight:800; font-family:'JetBrains Mono',monospace;">${p2Pts !== null ? p2Pts : '-'}</span>
                       <span style="color: ${p2Wins ? '#86efac' : 'var(--text-main)'}; font-weight: ${p2Wins ? '800' : '600'};">${escapeHtml(p2.name)}</span>
                     </div>
-                    ${diff !== null ? `<span class="diff-badge">(Dif: +${diff} pts)</span>` : '<span class="diff-badge">Sin jugar</span>'}
+                    ${diff !== null ? `<span style="font-size:0.75rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace;">(Dif: +${diff} pts)</span>` : '<span style="font-size:0.75rem; color:var(--text-dim);">Sin jugar</span>'}
                   </div>
                 </div>
               `;
@@ -823,7 +1008,7 @@ function renderFramesView() {
 
 /**
  * =========================================================================
- * VISTA 4: FASE FINAL / CUADRO PLAYOFFS (OCTAVOS -> CUARTOS -> SEMIS -> FINAL)
+ * VISTA 4: FASE FINAL (OCTAVOS -> CUARTOS -> SEMIS -> FINAL)
  * =========================================================================
  */
 function renderPlayoffsView() {
@@ -876,10 +1061,10 @@ function renderPlayoffsView() {
   if (po.final && po.final.winnerId) {
     const champion = tournamentState.players[po.final.winnerId];
     html += `
-      <div class="champion-trophy-card">
-        <div class="champion-trophy-icon">🏆</div>
-        <div style="font-size:0.95rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--gold); font-weight:800;">¡CAMPEÓN DEL TORNEO DE SNOOKER!</div>
-        <div class="champion-name-big">${escapeHtml(champion?.name || 'Campeón')}</div>
+      <div class="champion-trophy-card" style="margin-top:2rem; background:linear-gradient(135deg, rgba(241,184,52,0.2) 0%, rgba(22,38,62,0.9) 100%); border:2px solid var(--gold); border-radius:var(--radius-lg); padding:2rem; text-align:center; box-shadow:0 0 35px var(--gold-glow); display:flex; flex-direction:column; align-items:center; gap:0.85rem;">
+        <div style="font-size:3.5rem; animation:bounce 2s infinite ease-in-out;">🏆</div>
+        <div style="font-size:0.95rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--gold); font-weight:900;">¡CAMPEÓN DEL TORNEO DE SNOOKER!</div>
+        <div style="font-size:2rem; font-weight:900; color:var(--gold-light); text-shadow:0 0 20px rgba(241,184,52,0.7);">${escapeHtml(champion?.name || 'Campeón')}</div>
         <p style="color:var(--text-muted); font-size:0.95rem;">Ganador absoluto del Torneo Snooker Blackpool Madrid</p>
       </div>
     `;
@@ -981,9 +1166,9 @@ function renderAdminView() {
     const disabledAttr = !isAdminAuthenticated ? 'disabled' : '';
 
     html += `
-      <div class="player-input-item">
-        <span class="player-num-tag">#${i}</span>
-        <input type="text" class="player-name-input" data-player-id="${i}" value="${escapeHtml(p.name)}" placeholder="Jugador ${i}" ${disabledAttr}>
+      <div class="player-input-item" style="display:flex; align-items:center; gap:0.6rem; background:var(--bg-input); padding:0.55rem 0.8rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+        <span class="player-num-tag" style="font-size:0.85rem; font-weight:900; color:var(--gold); width:28px;">#${i}</span>
+        <input type="text" class="player-name-input" data-player-id="${i}" value="${escapeHtml(p.name)}" placeholder="Jugador ${i}" ${disabledAttr} style="flex:1; background:transparent; border:none; color:#fff; font-family:'Outfit',sans-serif; font-size:0.95rem; font-weight:700; outline:none;">
         <span style="font-size:0.75rem; color:var(--text-dim); white-space:nowrap;">Gr.${groupNum} (${venueName})</span>
       </div>
     `;
@@ -1005,8 +1190,13 @@ async function savePlayerNamesFromAdmin() {
     }
   });
 
-  await saveTournamentDataAsync(tournamentState);
-  showToast('💾 Nombres de jugadores guardados y sincronizados', 'success');
+  const res = await saveTournamentDataAsync(tournamentState);
+  if (res.success) {
+    showToast('💾 Nombres sincronizados en Supabase para todos los jugadores', 'success');
+  } else {
+    showToast('⚠️ Guardado local (Falta tabla en Supabase)', 'warning');
+    updateSupabaseAlertBanner();
+  }
   renderAllViews();
 }
 
@@ -1078,8 +1268,8 @@ function generateQRCode() {
 
   container.innerHTML = `
     <img src="${qrApiUrl}" alt="Código QR del Torneo" style="width:220px; height:220px; border-radius:8px; display:block; margin:0 auto;" />
-    <p style="margin-top:0.85rem; font-size:0.88rem; font-weight:700; color:var(--gold-light); word-break:break-all;">${targetUrl}</p>
-    <p style="margin-top:0.25rem; font-size:0.8rem; color:var(--text-muted);">Enlace público en Netlify con actualización en vivo</p>
+    <p style="margin-top:0.85rem; font-size:0.92rem; font-weight:800; color:var(--gold-light); word-break:break-all;">${targetUrl}</p>
+    <p style="margin-top:0.25rem; font-size:0.82rem; color:var(--text-muted);">Enlace público en Netlify con actualización en vivo</p>
   `;
 }
 
