@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Torneo Snooker Madrid | Gestión de Resultados y Horarios</title>
-  <meta name="description" content="Plataforma oficial en vivo para el Torneo de Snooker Blackpool Madrid - Sedes Vallecas y Alcobendas. Resultados, horarios, mesas y clasificación.">
+  <meta name="description" content="Plataforma oficial en vivo para el Torneo de Snooker Madrid - Sedes Vallecas y Alcobendas. Resultados, horarios, mesas y clasificación.">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
 </head>
@@ -57,10 +57,10 @@
       <div class="brand-section">
         <div class="brand-title-wrap">
           <div class="brand-badge">
-            <img src="IMG/Snooker2.jpg" alt="Logo Snooker Blackpool">
+            <img src="IMG/Snooker2.jpg" alt="Logo Snooker">
           </div>
           <div class="brand-text">
-            <h1>🎱 TORNEO SNOOKER <span class="gold-highlight">BLACKPOOL MADRID</span> 🎱</h1>
+            <h1>🎱 TORNEO SNOOKER <span class="gold-highlight">MADRID</span> 🎱</h1>
             <div class="brand-subtitle">
               <span>Gestión Oficial de Resultados, Horarios y Breaks</span>
               <span class="venue-tag">📍 Vallecas (BBM)</span>
@@ -439,7 +439,7 @@
         <pre id="sql-code-display" style="background:#07080e; padding:1rem; border-radius:6px; border:1px solid var(--border-color); font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#86efac; max-height:220px; overflow-y:auto; white-space:pre-wrap;">
 CREATE TABLE IF NOT EXISTS public.tournament_state (
     id TEXT PRIMARY KEY DEFAULT 'current',
-    title TEXT NOT NULL DEFAULT 'Torneo Snooker Blackpool Madrid',
+    title TEXT NOT NULL DEFAULT 'Torneo Snooker Madrid',
     state JSONB NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -520,7 +520,7 @@ END $$;</pre>
 
   <!-- FOOTER -->
   <footer class="app-footer">
-    <p>🎱 <strong>Torneo Snooker Blackpool Madrid</strong> | Sedes Vallecas & Alcobendas</p>
+    <p>🎱 <strong>Torneo Snooker Madrid</strong> | Sedes Vallecas & Alcobendas</p>
     <p style="margin-top:0.35rem; color:var(--text-dim);">Sincronización en vivo con Supabase | Despliegue oficial en Netlify</p>
   </footer>
 
