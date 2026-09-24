@@ -247,13 +247,24 @@ body {
   text-shadow: 0 0 14px rgba(241, 184, 52, 0.45);
 }
 
+/* Date subtitle below tournament title */
+.brand-date-subtitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #a5b4fc;
+  letter-spacing: 0.06em;
+  margin-top: 0.2rem;
+  margin-bottom: 0.1rem;
+  text-shadow: 0 0 12px rgba(165, 180, 252, 0.4);
+}
+
 .brand-subtitle {
   font-size: 0.95rem;
   color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
   flex-wrap: wrap;
 }
 
@@ -269,6 +280,147 @@ body {
   align-items: center;
   gap: 0.35rem;
 }
+
+/* ==========================================================================
+   TOP BREAKS PANEL (Fase Final)
+   ========================================================================== */
+
+.top-breaks-panel {
+  background: linear-gradient(135deg, rgba(241,184,52,0.12) 0%, rgba(22,27,48,0.95) 100%);
+  border: 1.5px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 0 30px rgba(241,184,52,0.12);
+}
+
+.top-breaks-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--gold-light);
+  letter-spacing: 0.02em;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 10px rgba(241,184,52,0.35);
+}
+
+.top-breaks-podium {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.break-rank-card {
+  flex: 1;
+  min-width: 170px;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+  position: relative;
+  border: 2px solid transparent;
+  transition: var(--transition);
+}
+
+.break-rank-card.rank-1 {
+  background: linear-gradient(145deg, rgba(241,184,52,0.28) 0%, rgba(25,30,50,0.9) 100%);
+  border-color: var(--gold);
+  box-shadow: 0 0 22px rgba(241,184,52,0.3);
+}
+.break-rank-card.rank-2 {
+  background: linear-gradient(145deg, rgba(192,192,192,0.2) 0%, rgba(22,27,48,0.9) 100%);
+  border-color: rgba(192,192,192,0.5);
+  box-shadow: 0 0 14px rgba(192,192,192,0.15);
+}
+.break-rank-card.rank-3 {
+  background: linear-gradient(145deg, rgba(205,127,50,0.2) 0%, rgba(22,27,48,0.9) 100%);
+  border-color: rgba(205,127,50,0.5);
+  box-shadow: 0 0 14px rgba(205,127,50,0.15);
+}
+.break-rank-card.rank-empty {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.07);
+  opacity: 0.55;
+}
+
+.break-rank-medal {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.break-rank-score {
+  font-size: 2.5rem;
+  font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+}
+.rank-1 .break-rank-score { color: var(--gold); text-shadow: 0 0 16px rgba(241,184,52,0.6); }
+.rank-2 .break-rank-score { color: #d0d0d0; }
+.rank-3 .break-rank-score { color: #cd7f32; }
+.rank-empty .break-rank-score { color: var(--text-dim); font-size: 1.5rem; }
+
+.break-rank-player {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fff;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.break-rank-stage {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+/* Playoff break input row */
+.bracket-breaks-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  background: rgba(241,184,52,0.07);
+  border: 1px dashed rgba(241,184,52,0.3);
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+}
+
+.bracket-break-box {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--gold-light);
+  font-weight: 800;
+}
+
+.bracket-break-input {
+  width: 52px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--gold-light);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 0.2rem 0.25rem;
+  outline: none;
+}
+.bracket-break-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 6px var(--gold-glow);
+}
+
 
 .quick-stats-bar {
   display: flex;
