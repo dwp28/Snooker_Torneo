@@ -1,40 +1,106 @@
 /**
- * TORNEO SNOOKER BLACKPOOL MADRID - APLICACIÓN PRINCIPAL
- * Interfaz interactiva, reactividad y persistencia
+ * TORNEO SNOOKER BLACKPOOL MADRID - APP CONTROLLER V2
+ * Conexión Supabase en Tiempo Real, Modo Administrador Seguro y UI Mejorada
  */
 
-// Estado global de la aplicación
 let tournamentState = null;
 let currentTab = 'matches';
 let currentVenue = 'vallecas';
 let currentGroupFilter = 'all';
+let isAdminAuthenticated = false;
+let autoSyncInterval = null;
 
-// Inicialización cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  initApp();
+const PUBLIC_NETLIFY_URL = 'https://snookertorneomadrid.netlify.app/';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await initApp();
 });
 
-function initApp() {
-  tournamentState = loadTournamentData();
+async function initApp() {
+  checkAdminAuth();
+  updateAdminUIState();
+
+  // Cargar datos locales primero para inicio instantáneo
+  tournamentState = loadTournamentDataLocal();
   setupNavigation();
   setupEventListeners();
   renderAllViews();
   updateHeaderStats();
+
+  // Sincronizar con Supabase en segundo plano
+  await syncFromSupabase();
+
+  // Polling cada 12 segundos para actualizar espectadores en tiempo real
+  if (autoSyncInterval) clearInterval(autoSyncInterval);
+  autoSyncInterval = setInterval(async () => {
+    if (!document.hidden) {
+      await syncFromSupabase(true);
+    }
+  }, 12000);
+}
+
+function checkAdminAuth() {
+  isAdminAuthenticated = sessionStorage.getItem('SNOOKER_ADMIN_AUTH') === 'true';
+}
+
+function updateAdminUIState() {
+  const loginTrigger = document.getElementById('btn-login-admin-trigger');
+  const logoutTrigger = document.getElementById('btn-logout-admin-trigger');
+  const adminBadge = document.getElementById('admin-status-badge');
+  const spectatorBadge = document.getElementById('spectator-status-badge');
+
+  if (isAdminAuthenticated) {
+    if (loginTrigger) loginTrigger.style.display = 'none';
+    if (logoutTrigger) logoutTrigger.style.display = 'inline-flex';
+    if (adminBadge) adminBadge.style.display = 'inline-flex';
+    if (spectatorBadge) spectatorBadge.style.display = 'none';
+  } else {
+    if (loginTrigger) loginTrigger.style.display = 'inline-flex';
+    if (logoutTrigger) logoutTrigger.style.display = 'none';
+    if (adminBadge) adminBadge.style.display = 'none';
+    if (spectatorBadge) spectatorBadge.style.display = 'inline-flex';
+  }
+}
+
+async function syncFromSupabase(silent = false) {
+  try {
+    const remoteData = await loadTournamentDataAsync();
+    if (remoteData && remoteData.groups && remoteData.players) {
+      tournamentState = remoteData;
+      renderAllViews();
+      updateHeaderStats();
+      if (!silent) {
+        setSyncStatus('Conectado a Supabase (En vivo)', true);
+      }
+    }
+  } catch (e) {
+    if (!silent) {
+      setSyncStatus('Modo local (Sin conexión)', false);
+    }
+  }
+}
+
+function setSyncStatus(text, isOnline) {
+  const syncEl = document.getElementById('sync-status-text');
+  const dotEl = document.getElementById('sync-status-dot');
+  if (syncEl) syncEl.textContent = text;
+  if (dotEl) {
+    dotEl.style.background = isOnline ? 'var(--snooker-green-light)' : '#fca5a5';
+    dotEl.style.boxShadow = isOnline ? '0 0 8px var(--snooker-green-light)' : '0 0 8px #fca5a5';
+  }
 }
 
 /**
- * Configura la navegación por pestañas principales y filtros
+ * Navegación y Filtros
  */
 function setupNavigation() {
-  const tabButtons = document.querySelectorAll('.nav-tab-btn');
-  tabButtons.forEach(btn => {
+  document.querySelectorAll('.nav-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetTab = btn.getAttribute('data-tab');
       switchTab(targetTab);
     });
   });
 
-  // Selector de sedes (Vallecas vs Alcobendas)
   document.querySelectorAll('.venue-pill-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const venue = btn.getAttribute('data-venue');
@@ -42,9 +108,7 @@ function setupNavigation() {
     });
   });
 
-  // Filtros de grupos
-  const filterSelects = document.querySelectorAll('.filter-group-select');
-  filterSelects.forEach(select => {
+  document.querySelectorAll('.filter-group-select').forEach(select => {
     select.addEventListener('change', (e) => {
       currentGroupFilter = e.target.value;
       renderCurrentView();
@@ -68,7 +132,6 @@ function switchVenue(venueId) {
   document.querySelectorAll('.venue-pill-btn').forEach(b => {
     b.classList.toggle('active', b.getAttribute('data-venue') === venueId);
   });
-  // Actualizar selects de grupo acorde a la sede
   updateGroupFilterOptions();
   renderCurrentView();
 }
@@ -84,7 +147,66 @@ function updateGroupFilterOptions() {
   currentGroupFilter = 'all';
 }
 
+/**
+ * Event Listeners y Modales
+ */
 function setupEventListeners() {
+  // Modal Login Admin
+  const btnLoginTrigger = document.getElementById('btn-login-admin-trigger');
+  const modalLogin = document.getElementById('modal-admin-login');
+  const btnSubmitLogin = document.getElementById('btn-submit-admin-login');
+  const btnCancelLogin = document.getElementById('btn-cancel-admin-login');
+  const txtPassword = document.getElementById('txt-admin-password');
+  const btnLogoutTrigger = document.getElementById('btn-logout-admin-trigger');
+
+  if (btnLoginTrigger && modalLogin) {
+    btnLoginTrigger.addEventListener('click', () => {
+      if (txtPassword) txtPassword.value = '';
+      modalLogin.classList.add('is-open');
+      if (txtPassword) txtPassword.focus();
+    });
+  }
+
+  if (btnCancelLogin && modalLogin) {
+    btnCancelLogin.addEventListener('click', () => {
+      modalLogin.classList.remove('is-open');
+    });
+  }
+
+  if (btnSubmitLogin) {
+    btnSubmitLogin.addEventListener('click', () => {
+      const pass = txtPassword ? txtPassword.value.trim() : '';
+      if (pass === ADMIN_PASSWORD_HASH) {
+        sessionStorage.setItem('SNOOKER_ADMIN_AUTH', 'true');
+        isAdminAuthenticated = true;
+        updateAdminUIState();
+        modalLogin.classList.remove('is-open');
+        showToast('🔓 Modo Administrador Activado', 'success');
+        renderAllViews();
+      } else {
+        alert('❌ Contraseña incorrecta. Por favor vuelve a intentarlo.');
+      }
+    });
+  }
+
+  if (txtPassword) {
+    txtPassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        btnSubmitLogin.click();
+      }
+    });
+  }
+
+  if (btnLogoutTrigger) {
+    btnLogoutTrigger.addEventListener('click', () => {
+      sessionStorage.removeItem('SNOOKER_ADMIN_AUTH');
+      isAdminAuthenticated = false;
+      updateAdminUIState();
+      showToast('🔒 Sesión de Administrador cerrada', 'info');
+      renderAllViews();
+    });
+  }
+
   // Modal de reinicio
   const btnOpenReset = document.getElementById('btn-open-reset-modal');
   const modalReset = document.getElementById('modal-reset');
@@ -93,26 +215,49 @@ function setupEventListeners() {
 
   if (btnOpenReset) {
     btnOpenReset.addEventListener('click', () => {
+      if (!isAdminAuthenticated) {
+        showToast('⚠️ Debes iniciar sesión como Administrador para reiniciar', 'warning');
+        if (btnLoginTrigger) btnLoginTrigger.click();
+        return;
+      }
       modalReset.classList.add('is-open');
     });
   }
 
-  if (btnCancelReset) {
+  if (btnCancelReset && modalReset) {
     btnCancelReset.addEventListener('click', () => {
       modalReset.classList.remove('is-open');
     });
   }
 
-  if (btnConfirmReset) {
-    btnConfirmReset.addEventListener('click', () => {
+  if (btnConfirmReset && modalReset) {
+    btnConfirmReset.addEventListener('click', async () => {
       const resetPlayers = document.getElementById('chk-reset-names')?.checked || false;
-      resetTournament(resetPlayers);
+      await resetTournament(resetPlayers);
       modalReset.classList.remove('is-open');
-      showToast('🔄 Torneo reiniciado con éxito', 'success');
+      showToast('🔄 Torneo reiniciado y sincronizado en Supabase', 'success');
     });
   }
 
-  // Modal de Exportar / Importar
+  // Modal QR
+  const btnShareQR = document.getElementById('btn-share-qr');
+  const modalQR = document.getElementById('modal-qr');
+  const btnCloseQR = document.getElementById('btn-close-qr');
+
+  if (btnShareQR && modalQR) {
+    btnShareQR.addEventListener('click', () => {
+      generateQRCode();
+      modalQR.classList.add('is-open');
+    });
+  }
+
+  if (btnCloseQR && modalQR) {
+    btnCloseQR.addEventListener('click', () => {
+      modalQR.classList.remove('is-open');
+    });
+  }
+
+  // Exportar / Importar
   const btnExport = document.getElementById('btn-export-json');
   if (btnExport) {
     btnExport.addEventListener('click', exportTournamentJSON);
@@ -123,25 +268,13 @@ function setupEventListeners() {
     fileInputImport.addEventListener('change', handleImportFile);
   }
 
-  // Modal QR
-  const btnShareQR = document.getElementById('btn-share-qr');
-  const modalQR = document.getElementById('modal-qr');
-  const btnCloseQR = document.getElementById('btn-close-qr');
-
-  if (btnShareQR) {
-    btnShareQR.addEventListener('click', () => {
-      generateQRCode();
-      modalQR.classList.add('is-open');
-    });
+  // Guardar todos los nombres de jugadores
+  const btnSaveAllNames = document.getElementById('btn-save-player-names');
+  if (btnSaveAllNames) {
+    btnSaveAllNames.addEventListener('click', savePlayerNamesFromAdmin);
   }
 
-  if (btnCloseQR) {
-    btnCloseQR.addEventListener('click', () => {
-      modalQR.classList.remove('is-open');
-    });
-  }
-
-  // Cerrar modales clicando fondo
+  // Cerrar modales al hacer clic fuera
   document.querySelectorAll('.modal-backdrop').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
@@ -149,16 +282,10 @@ function setupEventListeners() {
       }
     });
   });
-
-  // Botón guardar todos los nombres
-  const btnSaveAllNames = document.getElementById('btn-save-player-names');
-  if (btnSaveAllNames) {
-    btnSaveAllNames.addEventListener('click', savePlayerNamesFromAdmin);
-  }
 }
 
 /**
- * Renderiza todas las vistas y actualiza estado
+ * Renderizado de Vistas
  */
 function renderAllViews() {
   updatePlayoffQualifiers(tournamentState);
@@ -180,13 +307,11 @@ function renderCurrentView() {
   updateHeaderStats();
 }
 
-/**
- * Actualiza estadísticas rápidas en el encabezado
- */
 function updateHeaderStats() {
   let totalMatches = 0;
   let completedMatches = 0;
   let totalPoints = 0;
+  let highestBreakTournament = 0;
 
   for (let g = 1; g <= 8; g++) {
     const group = tournamentState.groups[g];
@@ -195,6 +320,9 @@ function updateHeaderStats() {
       if (m.isCompleted || m.p1FramesWon >= 2 || m.p2FramesWon >= 2) {
         completedMatches++;
       }
+      if (m.p1HighestBreak) highestBreakTournament = Math.max(highestBreakTournament, Number(m.p1HighestBreak));
+      if (m.p2HighestBreak) highestBreakTournament = Math.max(highestBreakTournament, Number(m.p2HighestBreak));
+
       m.frames.forEach(f => {
         if (f.p1Points) totalPoints += Number(f.p1Points);
         if (f.p2Points) totalPoints += Number(f.p2Points);
@@ -204,10 +332,12 @@ function updateHeaderStats() {
 
   const elCompleted = document.getElementById('stat-matches-completed');
   const elPoints = document.getElementById('stat-total-points');
+  const elBreak = document.getElementById('stat-highest-break');
   const elPercent = document.getElementById('stat-progress-percent');
 
   if (elCompleted) elCompleted.textContent = `${completedMatches}/${totalMatches}`;
   if (elPoints) elPoints.textContent = totalPoints.toLocaleString();
+  if (elBreak) elBreak.textContent = highestBreakTournament > 0 ? `${highestBreakTournament} pts` : '-';
   if (elPercent) {
     const pct = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
     elPercent.textContent = `${pct}%`;
@@ -216,7 +346,7 @@ function updateHeaderStats() {
 
 /**
  * =========================================================================
- * VISTA 1: PARTIDOS (MATCHES VIEW)
+ * VISTA 1: PARTIDOS (MATCHES VIEW) - REDISEÑADA
  * =========================================================================
  */
 function renderMatchesView() {
@@ -245,7 +375,7 @@ function renderMatchesView() {
           <div class="group-title-wrap">
             <span class="group-badge-num">${group.id}</span>
             <div>
-              <h2>${group.name} - ${group.venue === 'vallecas' ? 'Sede Vallecas (VF)' : 'Sede Alcobendas (BBM)'}</h2>
+              <h2>${group.name} - ${group.venueName}</h2>
             </div>
           </div>
           <div class="group-players-chips">
@@ -262,8 +392,6 @@ function renderMatchesView() {
   });
 
   container.innerHTML = html;
-
-  // Asignar listeners a inputs de puntos
   attachMatchInputListeners();
 }
 
@@ -273,28 +401,38 @@ function renderSingleMatchCard(match, group) {
 
   let statusClass = 'badge-pending';
   let statusText = 'Pendiente';
-  let cardBorderClass = '';
+  let cardClass = 'is-pending';
 
   if (match.isCompleted || match.p1FramesWon >= 2 || match.p2FramesWon >= 2) {
     statusClass = 'badge-completed';
-    statusText = 'Finalizado';
-    cardBorderClass = 'is-completed';
+    statusText = '🏆 Finalizado';
+    cardClass = 'is-completed';
   } else if (match.p1FramesWon > 0 || match.p2FramesWon > 0 || match.frames.some(f => f.p1Points !== null || f.p2Points !== null)) {
     statusClass = 'badge-progress';
-    statusText = 'En curso';
-    cardBorderClass = 'in-progress';
+    statusText = '🔴 En juego';
+    cardClass = 'in-progress';
   }
 
   const p1IsWinner = match.winnerId === p1.id;
   const p2IsWinner = match.winnerId === p2.id;
+  const disabledAttr = !isAdminAuthenticated ? 'disabled' : '';
 
   return `
-    <div class="match-card ${cardBorderClass}" id="card-${match.id}" data-match-id="${match.id}">
-      <div class="match-card-top">
-        <span class="match-num-badge">Partido ${match.matchNumber} / 6</span>
-        <span class="match-status-badge ${statusClass}">${statusText}</span>
+    <div class="match-card ${cardClass}" id="card-${match.id}" data-match-id="${match.id}">
+      
+      <!-- Header de Horario y Mesa Destacados -->
+      <div class="match-card-schedule-header">
+        <div class="schedule-badge-highlight">
+          <span>🕒</span>
+          <span>${escapeHtml(match.day || 'Viernes')} · ${escapeHtml(match.time || '12:00')}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span class="table-badge-highlight">${escapeHtml(match.table || 'Mesa 1')} · ${escapeHtml(match.venueName || 'Vallecas')}</span>
+          <span class="match-status-badge ${statusClass}">${statusText}</span>
+        </div>
       </div>
 
+      <!-- Enfrentamiento con Nombres y Marcador Grandes -->
       <div class="match-players-faceoff">
         <div class="player-side player-left">
           <span class="player-name-display ${p1IsWinner ? 'is-winner' : ''}" title="${escapeHtml(p1.name)}">${p1IsWinner ? '🏆 ' : ''}${escapeHtml(p1.name)}</span>
@@ -309,6 +447,21 @@ function renderSingleMatchCard(match, group) {
         </div>
       </div>
 
+      <!-- Highest Break / Break Máximo -->
+      <div class="match-highest-breaks-row">
+        <div class="break-item-box">
+          <span class="break-label">🔥 Break J1:</span>
+          <input type="number" min="0" max="155" placeholder="-" class="break-input" data-match="${match.id}" data-player="p1" 
+                 value="${match.p1HighestBreak !== null ? match.p1HighestBreak : ''}" ${disabledAttr}>
+        </div>
+        <div class="break-item-box">
+          <span class="break-label">🔥 Break J2:</span>
+          <input type="number" min="0" max="155" placeholder="-" class="break-input" data-match="${match.id}" data-player="p2" 
+                 value="${match.p2HighestBreak !== null ? match.p2HighestBreak : ''}" ${disabledAttr}>
+        </div>
+      </div>
+
+      <!-- Puntuación por Frames -->
       <div class="match-frames-inputs-wrap">
         ${match.frames.map((frame, idx) => {
           const fNum = idx + 1;
@@ -321,23 +474,29 @@ function renderSingleMatchCard(match, group) {
             <div class="frame-input-row" data-match="${match.id}" data-frame="${fNum}">
               <span class="frame-label">Frame ${fNum}</span>
               <input type="number" min="0" max="155" placeholder="0" class="frame-pts-input frame-p1-pts ${p1WinFrame ? 'winner-pts' : ''}" 
-                     data-match="${match.id}" data-frame-idx="${idx}" data-player="p1" value="${p1Pts}">
+                     data-match="${match.id}" data-frame-idx="${idx}" data-player="p1" value="${p1Pts}" ${disabledAttr}>
               <span class="frame-mid-indicator">-</span>
               <input type="number" min="0" max="155" placeholder="0" class="frame-pts-input frame-p2-pts ${p2WinFrame ? 'winner-pts' : ''}" 
-                     data-match="${match.id}" data-frame-idx="${idx}" data-player="p2" value="${p2Pts}">
+                     data-match="${match.id}" data-frame-idx="${idx}" data-player="p2" value="${p2Pts}" ${disabledAttr}>
             </div>
           `;
         }).join('')}
       </div>
 
-      <div class="match-card-actions">
-        <button type="button" class="btn-clear-match" data-match="${match.id}" title="Borrar puntuaciones de este partido">
-          🗑️ Limpiar
-        </button>
-        <button type="button" class="btn-quick-save" data-match="${match.id}">
-          💾 Guardar
-        </button>
-      </div>
+      ${isAdminAuthenticated ? `
+        <div class="match-card-actions">
+          <button type="button" class="btn-clear-match" data-match="${match.id}" title="Limpiar resultado">
+            🗑️ Limpiar
+          </button>
+          <button type="button" class="btn-quick-save" data-match="${match.id}">
+            💾 Guardar Partido
+          </button>
+        </div>
+      ` : `
+        <div style="font-size:0.75rem; color:var(--text-dim); text-align:center; padding-top:0.2rem;">
+          👀 Solo lectura · Inicia sesión como admin para editar
+        </div>
+      `}
     </div>
   `;
 }
@@ -354,39 +513,54 @@ function attachMatchInputListeners() {
     });
   });
 
+  document.querySelectorAll('.break-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const matchId = e.target.getAttribute('data-match');
+      const playerKey = e.target.getAttribute('data-player');
+      const value = e.target.value.trim() === '' ? null : parseInt(e.target.value);
+      handleBreakChange(matchId, playerKey, value);
+    });
+  });
+
   document.querySelectorAll('.btn-clear-match').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const matchId = btn.getAttribute('data-match');
-      if (confirm('¿Deseas limpiar todos los puntos de este partido?')) {
+      if (confirm('¿Deseas limpiar las puntuaciones de este partido?')) {
         clearMatchScores(matchId);
       }
     });
   });
 
   document.querySelectorAll('.btn-quick-save').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      saveTournamentData(tournamentState);
-      showToast('✅ Partido guardado', 'success');
+    btn.addEventListener('click', async (e) => {
+      await saveTournamentDataAsync(tournamentState);
+      showToast('💾 Partido guardado y sincronizado en Supabase', 'success');
       renderAllViews();
     });
   });
 }
 
+function handleBreakChange(matchId, playerKey, value) {
+  const match = findMatchById(matchId);
+  if (!match) return;
+
+  if (playerKey === 'p1') match.p1HighestBreak = value;
+  if (playerKey === 'p2') match.p2HighestBreak = value;
+
+  saveTournamentDataAsync(tournamentState);
+  updateHeaderStats();
+}
+
 function handleFrameScoreChange(matchId, frameIdx, playerKey, value) {
-  let match = findMatchById(matchId);
+  const match = findMatchById(matchId);
   if (!match) return;
 
   const frame = match.frames[frameIdx];
   if (playerKey === 'p1') frame.p1Points = value;
   else if (playerKey === 'p2') frame.p2Points = value;
 
-  // Recalcular frame winner y partido
   recalculateMatchOutcome(match);
-
-  // Auto-guardado
-  saveTournamentData(tournamentState);
-
-  // Actualizar la interfaz visual del match card sin perder foco si es posible
+  saveTournamentDataAsync(tournamentState);
   updateMatchCardUI(match);
   updateHeaderStats();
 }
@@ -420,12 +594,19 @@ function recalculateMatchOutcome(match) {
   if (p1FramesWon >= 2) {
     match.winnerId = match.player1Id;
     match.isCompleted = true;
+    match.status = 'completed';
   } else if (p2FramesWon >= 2) {
     match.winnerId = match.player2Id;
     match.isCompleted = true;
+    match.status = 'completed';
+  } else if (p1FramesWon > 0 || p2FramesWon > 0 || match.frames.some(f => f.p1Points !== null || f.p2Points !== null)) {
+    match.winnerId = null;
+    match.isCompleted = false;
+    match.status = 'in_progress';
   } else {
     match.winnerId = null;
     match.isCompleted = false;
+    match.status = 'pending';
   }
 }
 
@@ -439,7 +620,6 @@ function updateMatchCardUI(match) {
   if (p1Count) p1Count.textContent = match.p1FramesWon;
   if (p2Count) p2Count.textContent = match.p2FramesWon;
 
-  // Actualizar clases de ganador de frame
   match.frames.forEach((f, idx) => {
     const row = card.querySelector(`.frame-input-row[data-frame="${idx + 1}"]`);
     if (row) {
@@ -465,10 +645,13 @@ function clearMatchScores(matchId) {
   ];
   match.p1FramesWon = 0;
   match.p2FramesWon = 0;
+  match.p1HighestBreak = null;
+  match.p2HighestBreak = null;
   match.winnerId = null;
+  match.status = 'pending';
   match.isCompleted = false;
 
-  saveTournamentData(tournamentState);
+  saveTournamentDataAsync(tournamentState);
   renderAllViews();
   showToast('🧹 Partido restablecido', 'info');
 }
@@ -483,7 +666,7 @@ function findMatchById(matchId) {
 
 /**
  * =========================================================================
- * VISTA 2: GRUPOS (STANDINGS VIEW)
+ * VISTA 2: GRUPOS (STANDINGS VIEW) - REDISEÑADA
  * =========================================================================
  */
 function renderStandingsView() {
@@ -508,7 +691,7 @@ function renderStandingsView() {
           <div class="group-title-wrap">
             <span class="group-badge-num">${group.id}</span>
             <div>
-              <h2 style="font-size:1.05rem; font-weight:700; color:#fff;">${group.name} - ${group.venue === 'vallecas' ? 'Vallecas (VF)' : 'Alcobendas (BBM)'}</h2>
+              <h2 style="font-size:1.15rem; font-weight:800; color:#fff;">${group.name} - ${group.venueName}</h2>
             </div>
           </div>
           <span class="match-status-badge ${groupStatus.badgeClass}">${groupStatus.icon} ${groupStatus.text}</span>
@@ -518,12 +701,13 @@ function renderStandingsView() {
           <table class="standings-table">
             <thead>
               <tr>
-                <th style="width: 45px;">Pos</th>
+                <th style="width: 50px;">Pos</th>
                 <th>Jugador</th>
                 <th style="text-align: center;">PJ</th>
                 <th style="text-align: center;">PG</th>
                 <th style="text-align: center;">FG</th>
                 <th style="text-align: center;">FP</th>
+                <th style="text-align: center;">Break Máx</th>
                 <th style="text-align: center;">Pts Totales ⭐</th>
                 <th style="text-align: center;">Pases</th>
               </tr>
@@ -537,17 +721,18 @@ function renderStandingsView() {
                     <td class="pos-cell ${posClass}">${row.position}º</td>
                     <td>
                       <div class="player-cell">
-                        ${row.isQualified ? '<span class="qualify-dot" title="Puesto clasificatorio a Playoffs"></span>' : ''}
+                        ${row.isQualified ? '<span class="qualify-dot" title="Clasifica a Octavos de Final"></span>' : ''}
                         <span>${escapeHtml(row.player.name)}</span>
                       </div>
                     </td>
                     <td class="num-cell">${row.matchesPlayed}</td>
-                    <td class="num-cell" style="color:#6ee7b7; font-weight:700;">${row.matchesWon}</td>
-                    <td class="num-cell" style="color:var(--gold); font-weight:700;">${row.framesWon}</td>
+                    <td class="num-cell" style="color:#6ee7b7; font-weight:800;">${row.matchesWon}</td>
+                    <td class="num-cell" style="color:var(--gold); font-weight:800;">${row.framesWon}</td>
                     <td class="num-cell" style="color:var(--text-dim);">${row.framesLost}</td>
+                    <td class="num-cell" style="color:var(--gold-light); font-weight:700;">${row.highestBreak > 0 ? row.highestBreak : '-'}</td>
                     <td class="num-cell points-cell">${row.totalPoints} pts</td>
                     <td class="num-cell">
-                      ${row.position <= 2 ? '<span style="color:#86efac; font-weight:700; font-size:0.8rem;">16avos ✅</span>' : '<span style="color:var(--text-dim); font-size:0.75rem;">-</span>'}
+                      ${row.position <= 2 ? '<span style="color:#86efac; font-weight:800; font-size:0.84rem;">Octavos ✅</span>' : '<span style="color:var(--text-dim); font-size:0.8rem;">-</span>'}
                     </td>
                   </tr>
                 `;
@@ -586,7 +771,7 @@ function renderFramesView() {
         <div class="group-header-banner">
           <div class="group-title-wrap">
             <span class="group-badge-num">${group.id}</span>
-            <h2 style="font-size:1.05rem;">Desglose Individual de Frames - ${group.name}</h2>
+            <h2 style="font-size:1.1rem; font-weight:800;">Desglose Individual de Frames - ${group.name}</h2>
           </div>
         </div>
 
@@ -608,18 +793,19 @@ function renderFramesView() {
                 <div class="frame-detail-item">
                   <div class="frame-detail-match-info">
                     <span class="frame-badge-tag">Gr.${groupId} P${m.matchNumber} · F${fNum}</span>
-                    <span style="font-weight:600; color:#fff;">${escapeHtml(p1.name)} vs ${escapeHtml(p2.name)}</span>
+                    <span style="font-weight:700; color:#fff;">${escapeHtml(p1.name)} vs ${escapeHtml(p2.name)}</span>
+                    <span style="font-size:0.75rem; color:var(--text-dim);">(${m.day} ${m.time} · ${m.table})</span>
                   </div>
 
                   <div class="frame-detail-scores">
                     <div class="player-score-box">
-                      <span style="color: ${p1Wins ? '#86efac' : 'var(--text-main)'}; font-weight: ${p1Wins ? '700' : '500'};">${escapeHtml(p1.name)}</span>
+                      <span style="color: ${p1Wins ? '#86efac' : 'var(--text-main)'}; font-weight: ${p1Wins ? '800' : '600'};">${escapeHtml(p1.name)}</span>
                       <span class="score-num-badge ${p1Wins ? 'winner' : ''}">${p1Pts !== null ? p1Pts : '-'}</span>
                     </div>
-                    <span style="color:var(--text-dim); font-size:0.8rem;">vs</span>
+                    <span style="color:var(--text-dim); font-size:0.85rem;">vs</span>
                     <div class="player-score-box">
                       <span class="score-num-badge ${p2Wins ? 'winner' : ''}">${p2Pts !== null ? p2Pts : '-'}</span>
-                      <span style="color: ${p2Wins ? '#86efac' : 'var(--text-main)'}; font-weight: ${p2Wins ? '700' : '500'};">${escapeHtml(p2.name)}</span>
+                      <span style="color: ${p2Wins ? '#86efac' : 'var(--text-main)'}; font-weight: ${p2Wins ? '800' : '600'};">${escapeHtml(p2.name)}</span>
                     </div>
                     ${diff !== null ? `<span class="diff-badge">(Dif: +${diff} pts)</span>` : '<span class="diff-badge">Sin jugar</span>'}
                   </div>
@@ -637,7 +823,7 @@ function renderFramesView() {
 
 /**
  * =========================================================================
- * VISTA 4: FASE FINAL / CUADRO PLAYOFFS (PLAYOFFS VIEW)
+ * VISTA 4: FASE FINAL / CUADRO PLAYOFFS (OCTAVOS -> CUARTOS -> SEMIS -> FINAL)
  * =========================================================================
  */
 function renderPlayoffsView() {
@@ -651,33 +837,33 @@ function renderPlayoffsView() {
     <div class="bracket-wrapper">
       <div class="bracket-container">
         
-        <!-- 16AVOS / OCTAVOS DE FINAL (16 CLASIFICADOS) -->
+        <!-- OCTAVOS DE FINAL (16 CLASIFICADOS - 8 PARTIDOS) -->
         <div class="bracket-round-column">
-          <div class="bracket-round-header">16avos / Cruces (8 Partidos)</div>
+          <div class="bracket-round-header">Octavos de Final (8 Partidos)</div>
           <div class="bracket-matches-list">
-            ${po.roundOf16.map(m => renderPlayoffNode(m, 'r16')).join('')}
+            ${po.octavos.map(m => renderPlayoffNode(m, 'octavos')).join('')}
           </div>
         </div>
 
-        <!-- CUARTOS DE FINAL -->
+        <!-- CUARTOS DE FINAL (4 PARTIDOS) -->
         <div class="bracket-round-column">
           <div class="bracket-round-header">Cuartos de Final (4 Partidos)</div>
           <div class="bracket-matches-list">
-            ${po.quarterFinals.map(m => renderPlayoffNode(m, 'qf')).join('')}
+            ${po.cuartos.map(m => renderPlayoffNode(m, 'cuartos')).join('')}
           </div>
         </div>
 
-        <!-- SEMIFINALES -->
+        <!-- SEMIFINALES (DOMINGO 09:00) -->
         <div class="bracket-round-column">
-          <div class="bracket-round-header">Semifinales (2 Partidos)</div>
+          <div class="bracket-round-header">Semifinales (Domingo 09:00)</div>
           <div class="bracket-matches-list">
-            ${po.semiFinals.map(m => renderPlayoffNode(m, 'sf')).join('')}
+            ${po.semifinales.map(m => renderPlayoffNode(m, 'semifinales')).join('')}
           </div>
         </div>
 
-        <!-- GRAN FINAL -->
+        <!-- GRAN FINAL (DOMINGO 13:00) -->
         <div class="bracket-round-column">
-          <div class="bracket-round-header">🏆 Gran Final</div>
+          <div class="bracket-round-header">🏆 Gran Final (Domingo 13:00)</div>
           <div class="bracket-matches-list">
             ${renderPlayoffNode(po.final, 'final')}
           </div>
@@ -687,21 +873,19 @@ function renderPlayoffsView() {
     </div>
   `;
 
-  // Si hay campeón en la final, mostrar tarjeta de trofeo
   if (po.final && po.final.winnerId) {
     const champion = tournamentState.players[po.final.winnerId];
     html += `
       <div class="champion-trophy-card">
         <div class="champion-trophy-icon">🏆</div>
-        <div style="font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--gold);">¡CAMPEÓN DEL TORNEO DE SNOOKER!</div>
+        <div style="font-size:0.95rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--gold); font-weight:800;">¡CAMPEÓN DEL TORNEO DE SNOOKER!</div>
         <div class="champion-name-big">${escapeHtml(champion?.name || 'Campeón')}</div>
-        <p style="color:var(--text-muted); font-size:0.9rem;">Ganador absoluto del Torneo Snooker Blackpool Madrid</p>
+        <p style="color:var(--text-muted); font-size:0.95rem;">Ganador absoluto del Torneo Snooker Blackpool Madrid</p>
       </div>
     `;
   }
 
   container.innerHTML = html;
-
   attachPlayoffScoreListeners();
 }
 
@@ -714,24 +898,25 @@ function renderPlayoffNode(match, roundKey) {
 
   const p1Won = match.winnerId && match.player1Id && match.winnerId === match.player1Id;
   const p2Won = match.winnerId && match.player2Id && match.winnerId === match.player2Id;
+  const disabledAttr = (!isAdminAuthenticated || !match.player1Id || !match.player2Id) ? 'disabled' : '';
 
   return `
     <div class="bracket-match-node" data-round="${roundKey}" data-playoff-id="${match.id}">
       <div class="bracket-node-header">
         <span>${escapeHtml(match.label)}</span>
-        <span>${match.isCompleted ? '✅' : '⏳'}</span>
+        <span class="bracket-node-schedule">${match.day || ''} ${match.time || ''}</span>
       </div>
 
       <div class="bracket-participant-row ${p1Won ? 'is-winner' : ''}">
         <span class="bracket-participant-name" title="${escapeHtml(p1Name)}">${p1Won ? '🏆 ' : ''}${escapeHtml(p1Name)}</span>
         <input type="number" min="0" max="3" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p1" 
-               value="${match.p1FramesWon || 0}" ${(!match.player1Id || !match.player2Id) ? 'disabled' : ''}>
+               value="${match.p1FramesWon || 0}" ${disabledAttr}>
       </div>
 
       <div class="bracket-participant-row ${p2Won ? 'is-winner' : ''}">
         <span class="bracket-participant-name" title="${escapeHtml(p2Name)}">${p2Won ? '🏆 ' : ''}${escapeHtml(p2Name)}</span>
         <input type="number" min="0" max="3" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p2" 
-               value="${match.p2FramesWon || 0}" ${(!match.player1Id || !match.player2Id) ? 'disabled' : ''}>
+               value="${match.p2FramesWon || 0}" ${disabledAttr}>
       </div>
     </div>
   `;
@@ -739,24 +924,24 @@ function renderPlayoffNode(match, roundKey) {
 
 function attachPlayoffScoreListeners() {
   document.querySelectorAll('.bracket-score-input').forEach(input => {
-    input.addEventListener('change', (e) => {
+    input.addEventListener('change', async (e) => {
       const roundKey = e.target.getAttribute('data-round');
       const playoffId = e.target.getAttribute('data-playoff-id');
       const playerKey = e.target.getAttribute('data-player');
       const val = parseInt(e.target.value) || 0;
 
-      handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val);
+      await handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val);
     });
   });
 }
 
-function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
+async function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
   const po = tournamentState.playoffs;
   let match = null;
 
-  if (roundKey === 'r16') match = po.roundOf16.find(m => m.id === playoffId);
-  else if (roundKey === 'qf') match = po.quarterFinals.find(m => m.id === playoffId);
-  else if (roundKey === 'sf') match = po.semiFinals.find(m => m.id === playoffId);
+  if (roundKey === 'octavos') match = po.octavos.find(m => m.id === playoffId);
+  else if (roundKey === 'cuartos') match = po.cuartos.find(m => m.id === playoffId);
+  else if (roundKey === 'semifinales') match = po.semifinales.find(m => m.id === playoffId);
   else if (roundKey === 'final') match = po.final;
 
   if (!match) return;
@@ -764,7 +949,6 @@ function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
   if (playerKey === 'p1') match.p1FramesWon = val;
   if (playerKey === 'p2') match.p2FramesWon = val;
 
-  // Determinar ganador (primero a 2 frames)
   if (match.p1FramesWon >= 2 && match.player1Id) {
     match.winnerId = match.player1Id;
     match.isCompleted = true;
@@ -776,7 +960,7 @@ function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
     match.isCompleted = false;
   }
 
-  saveTournamentData(tournamentState);
+  await saveTournamentDataAsync(tournamentState);
   renderPlayoffsView();
 }
 
@@ -794,19 +978,25 @@ function renderAdminView() {
     const p = tournamentState.players[i] || { name: `Jugador ${i}` };
     const groupNum = Math.ceil(i / 4);
     const venueName = groupNum <= 4 ? 'Vallecas' : 'Alcobendas';
+    const disabledAttr = !isAdminAuthenticated ? 'disabled' : '';
 
     html += `
       <div class="player-input-item">
         <span class="player-num-tag">#${i}</span>
-        <input type="text" class="player-name-input" data-player-id="${i}" value="${escapeHtml(p.name)}" placeholder="Jugador ${i}">
-        <span style="font-size:0.7rem; color:var(--text-dim); white-space:nowrap;">Gr.${groupNum} (${venueName})</span>
+        <input type="text" class="player-name-input" data-player-id="${i}" value="${escapeHtml(p.name)}" placeholder="Jugador ${i}" ${disabledAttr}>
+        <span style="font-size:0.75rem; color:var(--text-dim); white-space:nowrap;">Gr.${groupNum} (${venueName})</span>
       </div>
     `;
   }
   container.innerHTML = html;
 }
 
-function savePlayerNamesFromAdmin() {
+async function savePlayerNamesFromAdmin() {
+  if (!isAdminAuthenticated) {
+    showToast('⚠️ Inicia sesión como administrador para guardar cambios', 'warning');
+    return;
+  }
+
   document.querySelectorAll('.player-name-input').forEach(input => {
     const pId = parseInt(input.getAttribute('data-player-id'));
     const val = input.value.trim();
@@ -815,13 +1005,13 @@ function savePlayerNamesFromAdmin() {
     }
   });
 
-  saveTournamentData(tournamentState);
-  showToast('💾 Nombres de jugadores actualizados', 'success');
+  await saveTournamentDataAsync(tournamentState);
+  showToast('💾 Nombres de jugadores guardados y sincronizados', 'success');
   renderAllViews();
 }
 
 /**
- * Exporta los datos a un archivo .json descargable
+ * Exportar e Importar
  */
 function exportTournamentJSON() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tournamentState, null, 2));
@@ -832,25 +1022,27 @@ function exportTournamentJSON() {
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
-  showToast('📥 Backup JSON descargado correctamente', 'success');
+  showToast('📥 Backup JSON descargado', 'success');
 }
 
-/**
- * Importa los datos desde un archivo .json
- */
 function handleImportFile(event) {
+  if (!isAdminAuthenticated) {
+    showToast('⚠️ Solo el administrador puede restaurar backups', 'warning');
+    return;
+  }
+
   const file = event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const imported = JSON.parse(e.target.result);
       if (imported && imported.groups && imported.players) {
         tournamentState = imported;
-        saveTournamentData(tournamentState);
+        await saveTournamentDataAsync(tournamentState);
         renderAllViews();
-        showToast('✅ Datos importados y restaurados correctamente', 'success');
+        showToast('✅ Torneo restaurado correctamente', 'success');
       } else {
         alert('El archivo JSON no tiene la estructura válida del torneo.');
       }
@@ -862,38 +1054,37 @@ function handleImportFile(event) {
 }
 
 /**
- * Reinicio completo del torneo
+ * Reinicio del Torneo
  */
-function resetTournament(resetNames = false) {
+async function resetTournament(resetNames = false) {
   const fresh = createDefaultTournamentState();
   if (!resetNames && tournamentState && tournamentState.players) {
-    // Conservar nombres de jugadores actuales
     fresh.players = tournamentState.players;
   }
   tournamentState = fresh;
-  saveTournamentData(tournamentState);
+  await saveTournamentDataAsync(tournamentState);
   renderAllViews();
 }
 
 /**
- * Generador de Código QR usando SVG dinámico simple
+ * Generador de Código QR apuntando a la URL pública de Netlify
  */
 function generateQRCode() {
   const container = document.getElementById('qr-canvas-wrap');
   if (!container) return;
 
-  const currentUrl = window.location.href;
-  // Usar API de QR ligera para renderizar el QR oficial
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentUrl)}&bgcolor=ffffff&color=0f1016`;
+  const targetUrl = PUBLIC_NETLIFY_URL;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(targetUrl)}&bgcolor=ffffff&color=0b0d13`;
 
   container.innerHTML = `
-    <img src="${qrApiUrl}" alt="Código QR del Torneo" style="width:200px; height:200px; border-radius:8px; display:block; margin:0 auto;" />
-    <p style="margin-top:0.75rem; font-size:0.8rem; color:#fff; word-break:break-all;">${currentUrl}</p>
+    <img src="${qrApiUrl}" alt="Código QR del Torneo" style="width:220px; height:220px; border-radius:8px; display:block; margin:0 auto;" />
+    <p style="margin-top:0.85rem; font-size:0.88rem; font-weight:700; color:var(--gold-light); word-break:break-all;">${targetUrl}</p>
+    <p style="margin-top:0.25rem; font-size:0.8rem; color:var(--text-muted);">Enlace público en Netlify con actualización en vivo</p>
   `;
 }
 
 /**
- * Sistema de notificaciones Toast
+ * Sistema Toast
  */
 function showToast(message, type = 'info') {
   let container = document.querySelector('.toast-container');
@@ -913,7 +1104,7 @@ function showToast(message, type = 'info') {
     toast.style.transform = 'translateY(10px)';
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  }, 2800);
 }
 
 function escapeHtml(str) {

@@ -3,12 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Torneo Snooker Blackpool Madrid | Gestión de Resultados</title>
-  <meta name="description" content="Plataforma de gestión de resultados y clasificación en vivo para el Torneo de Snooker Blackpool Madrid - Sedes Vallecas y Alcobendas.">
+  <title>Torneo Snooker Blackpool Madrid | Gestión de Resultados y Horarios</title>
+  <meta name="description" content="Plataforma en vivo de gestión de resultados, horarios y clasificación del Torneo de Snooker Blackpool Madrid - Sedes Vallecas y Alcobendas.">
   <link rel="stylesheet" href="css/styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
 </head>
 <body>
+
+  <!-- TOP SYSTEM & SYNC BAR -->
+  <div class="top-system-bar">
+    <div class="sync-indicator">
+      <span class="sync-dot" id="sync-status-dot"></span>
+      <span id="sync-status-text">Conectando con Supabase...</span>
+    </div>
+
+    <div class="admin-mode-pill">
+      <span id="spectator-status-badge" style="color:var(--text-muted); font-size:0.78rem;">
+        👀 Modo Espectador (Solo lectura en vivo)
+      </span>
+      <button type="button" class="btn-admin-login-trigger" id="btn-login-admin-trigger">
+        🔑 Acceso Admin
+      </button>
+
+      <span class="admin-badge-active" id="admin-status-badge" style="display:none;">
+        🛡️ Modo Administrador Activo
+      </span>
+      <button type="button" class="btn-clear-match" id="btn-logout-admin-trigger" style="display:none; color:#fca5a5; font-size:0.78rem; font-weight:700;">
+        🚪 Salir
+      </button>
+    </div>
+  </div>
 
   <!-- HERO & BRAND HEADER -->
   <header class="hero-header">
@@ -22,7 +46,7 @@
           <div class="brand-text">
             <h1>🎱 TORNEO SNOOKER <span class="gold-highlight">BLACKPOOL MADRID</span> 🎱</h1>
             <div class="brand-subtitle">
-              <span>Gestión Oficial de Resultados</span>
+              <span>Gestión Oficial de Resultados, Horarios y Breaks</span>
               <span class="venue-tag">📍 Vallecas (VF)</span>
               <span class="venue-tag">📍 Alcobendas (BBM)</span>
             </div>
@@ -35,6 +59,10 @@
             <span class="stat-label">Partidos:</span>
             <span class="stat-val" id="stat-matches-completed">0/48</span>
           </div>
+          <div class="stat-pill" title="Mayor break conseguido en el torneo">
+            <span class="stat-label">🔥 Break Máximo:</span>
+            <span class="stat-val" id="stat-highest-break" style="color:#ffd466;">-</span>
+          </div>
           <div class="stat-pill" title="Puntos totales acumulados en todos los frames">
             <span class="stat-label">Puntos Totales:</span>
             <span class="stat-val" id="stat-total-points">0</span>
@@ -43,8 +71,8 @@
             <span class="stat-label">Progreso:</span>
             <span class="stat-val" id="stat-progress-percent">0%</span>
           </div>
-          <button type="button" class="btn-quick-save" id="btn-share-qr" title="Compartir torneo con código QR o pantalla">
-            📱 Compartir QR
+          <button type="button" class="btn-quick-save" id="btn-share-qr" title="Compartir torneo con código QR oficial de Netlify">
+            📱 QR Público
           </button>
         </div>
       </div>
@@ -55,7 +83,7 @@
   <nav class="nav-tabs-wrapper" aria-label="Navegación del torneo">
     <div class="nav-tabs-container">
       <button type="button" class="nav-tab-btn active" data-tab="matches">
-        <span>📊</span> Partidos
+        <span>📊</span> Partidos y Horarios
       </button>
       <button type="button" class="nav-tab-btn" data-tab="groups">
         <span>🏆</span> Grupos (Clasificación)
@@ -64,7 +92,7 @@
         <span>📈</span> Desglose por Frame
       </button>
       <button type="button" class="nav-tab-btn" data-tab="playoffs">
-        <span>👑</span> Fase Final
+        <span>👑</span> Fase Final (Octavos a Final)
       </button>
       <button type="button" class="nav-tab-btn tab-admin" data-tab="admin">
         <span>⚙️</span> Administración
@@ -82,7 +110,7 @@
       <div class="section-toolbar">
         <div class="toolbar-title">
           <span>🎱</span>
-          <span>Partidos de la Fase de Grupos</span>
+          <span>Partidos y Programación Oficial</span>
         </div>
         
         <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
@@ -110,14 +138,14 @@
       <div class="info-notice">
         <span>💡</span>
         <div>
-          <strong>Regla de Partido:</strong> Cada partido se juega al <strong>Mejor de 3 Frames</strong> (gana quien llegue a 2 frames ganados). 
-          Anota los <strong>puntos individuales</strong> de cada jugador en cada frame; el ganador del frame y del partido se calcularán automáticamente.
+          <strong>Horarios y Descansos:</strong> Cada partido tiene asignado su <strong>Día, Hora y Mesa</strong> en bloques de ~2h asegurando descansos continuos entre enfrentamientos.
+          Formato: <strong>Mejor de 3 Frames</strong> (gana con 2). Puedes anotar el <strong>Highest Break</strong> de cada jugador.
         </div>
       </div>
 
       <!-- Grid de Partidos por Grupo -->
       <div class="groups-matches-grid" id="matches-container">
-        <!-- Renderizado dinámicamente con JavaScript -->
+        <!-- Renderizado dinámicamente -->
       </div>
     </section>
 
@@ -154,23 +182,23 @@
       <div class="info-notice">
         <span>⭐</span>
         <div>
-          <strong>Criterio de Desempate Oficial:</strong> En caso de empate en partidos ganados y frames ganados, el desempate se resuelve por <strong>Puntos Totales Acumulados</strong> en todos los frames jugados. Los <strong>2 primeros puestos (1º y 2º)</strong> de cada grupo clasifican a la Fase Final (16avos).
+          <strong>Criterio de Desempate Oficial:</strong> En caso de igualdad en partidos y frames ganados, el desempate se determina por <strong>Puntos Totales Acumulados</strong>. Los <strong>2 primeros clasificados (1º y 2º)</strong> de cada grupo avanzan a <strong>Octavos de Final</strong>.
         </div>
       </div>
 
       <!-- Tablas de Clasificación -->
       <div class="standings-grid" id="standings-container">
-        <!-- Renderizado dinámicamente con JavaScript -->
+        <!-- Renderizado dinámicamente -->
       </div>
 
       <div class="standings-legend">
         <div class="legend-item">
           <span class="legend-color" style="background:var(--gold-light);"></span>
-          <span>1º Puesto: Clasifica a Playoffs como cabeza de serie</span>
+          <span>1º Puesto: Clasifica a Octavos como cabeza de serie</span>
         </div>
         <div class="legend-item">
-          <span class="legend-color" style="background:#94a3b8;"></span>
-          <span>2º Puesto: Clasifica a Playoffs</span>
+          <span class="legend-color" style="background:#cbd5e1;"></span>
+          <span>2º Puesto: Clasifica a Octavos</span>
         </div>
         <div class="legend-item">
           <span class="legend-color" style="background:var(--snooker-green-light);"></span>
@@ -186,7 +214,7 @@
       <div class="section-toolbar">
         <div class="toolbar-title">
           <span>📈</span>
-          <span>Auditoría y Desglose Individual Frame a Frame</span>
+          <span>Desglose y Auditoría Frame a Frame</span>
         </div>
 
         <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
@@ -212,35 +240,37 @@
       <div class="info-notice">
         <span>🔍</span>
         <div>
-          Visualiza cada frame individual jugado en cada partido con sus marcadores detallados, ganador y diferencia de puntos.
+          Registro pormenorizado de cada frame disputado con marcadores individuales, ganador y diferencia de puntos.
         </div>
       </div>
 
       <div class="frames-timeline-container" id="frames-container">
-        <!-- Renderizado dinámicamente con JavaScript -->
+        <!-- Renderizado dinámicamente -->
       </div>
     </section>
 
     <!-- ====================================================================
-         TAB 4: FASE FINAL / PLAYOFFS (BRACKET)
+         TAB 4: FASE FINAL (OCTAVOS -> CUARTOS -> SEMIS -> FINAL)
          ==================================================================== -->
     <section class="tab-pane" id="tab-playoffs">
       <div class="section-toolbar">
         <div class="toolbar-title">
           <span>👑</span>
-          <span>Cuadro de Fase Final (16 Clasificados)</span>
+          <span>Cuadro de Fase Final (Octavos de Final a Gran Final)</span>
         </div>
       </div>
 
       <div class="info-notice">
         <span>🏆</span>
         <div>
-          Los cruces se alimentan automáticamente de la clasificación de los 8 grupos: <strong>1º Gr1 vs 2º Gr2, 1º Gr3 vs 2º Gr4, 1º Gr5 vs 2º Gr6, 1º Gr7 vs 2º Gr8, etc.</strong> Puedes anotar los frames ganados en cada eliminatoria hasta coronar al Campeón.
+          La fase final comienza en <strong>Octavos de Final</strong> con los 16 clasificados (1º y 2º de cada grupo): 
+          <strong>1º Gr1 vs 2º Gr2, 1º Gr2 vs 2º Gr1, 1º Gr3 vs 2º Gr4, 1º Gr4 vs 2º Gr3, etc.</strong> 
+          Las Semifinales se disputan el Domingo a las 09:00 y la Gran Final el Domingo a las 13:00.
         </div>
       </div>
 
       <div id="playoffs-container">
-        <!-- Renderizado dinámicamente con JavaScript -->
+        <!-- Renderizado dinámicamente -->
       </div>
     </section>
 
@@ -251,15 +281,15 @@
       <div class="section-toolbar">
         <div class="toolbar-title">
           <span>⚙️</span>
-          <span>Zona de Administración y Respaldo</span>
+          <span>Panel de Administración y Configuración</span>
         </div>
       </div>
 
       <div class="admin-grid">
-        <!-- Tarjeta de Guardado / Exportar -->
+        <!-- Tarjeta de Sincronización Supabase / JSON -->
         <div class="admin-card">
-          <h3>💾 Respaldo y Copias de Seguridad</h3>
-          <p>Los datos se guardan de forma instantánea en tu navegador (LocalStorage). Descarga un archivo JSON como copia de seguridad.</p>
+          <h3>💾 Sincronización y Copias de Seguridad</h3>
+          <p>Los datos se guardan y sincronizan en <strong>Supabase</strong> en tiempo real para todos los espectadores. También puedes descargar un archivo de respaldo en JSON.</p>
           <div class="admin-btn-group">
             <button type="button" class="btn-admin-action btn-primary" id="btn-export-json">
               📥 Descargar Backup JSON
@@ -274,7 +304,7 @@
         <!-- Tarjeta de Reinicio -->
         <div class="admin-card">
           <h3 style="color:#fca5a5;">⚠️ Zona de Peligro / Reinicio</h3>
-          <p>Reinicia todos los resultados de los 48 partidos del torneo. Puedes elegir conservar o restablecer los nombres de los 32 jugadores.</p>
+          <p>Reinicia todos los resultados del torneo en la base de datos de Supabase. Requiere confirmación de seguridad.</p>
           <div class="admin-btn-group">
             <button type="button" class="btn-admin-action btn-danger" id="btn-open-reset-modal">
               🔄 Reiniciar Torneo
@@ -287,7 +317,7 @@
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
             <div>
               <h3>👥 Gestión de Jugadores (32 Jugadores)</h3>
-              <p>Personaliza los nombres de los participantes para que aparezcan en los grupos y partidos.</p>
+              <p>Personaliza los nombres de los 32 jugadores. Se sincronizarán automáticamente en todos los grupos y partidos.</p>
             </div>
             <button type="button" class="btn-quick-save" id="btn-save-player-names">
               💾 Guardar Todos los Nombres
@@ -307,6 +337,26 @@
        MODALES
        ==================================================================== -->
 
+  <!-- Modal de Login Administrador -->
+  <div class="modal-backdrop" id="modal-admin-login" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>🔑 Acceso de Administrador</h3>
+        <button type="button" class="modal-close-btn" id="btn-cancel-admin-login" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div>
+        <p style="margin-bottom:1rem; color:var(--text-muted); font-size:0.92rem;">
+          Introduce la contraseña de administrador para desbloquear la edición de marcadores, horarios, breaks y gestión del torneo.
+        </p>
+        <input type="password" id="txt-admin-password" class="admin-password-input" placeholder="Contraseña de administrador" autofocus>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-admin-action" onclick="document.getElementById('modal-admin-login').classList.remove('is-open')">Cancelar</button>
+        <button type="button" class="btn-admin-action btn-primary" id="btn-submit-admin-login">Desbloquear</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal de Reinicio Seguro -->
   <div class="modal-backdrop" id="modal-reset" role="dialog" aria-modal="true">
     <div class="modal-dialog">
@@ -324,7 +374,7 @@
         </label>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-admin-action" id="btn-cancel-reset-2" onclick="document.getElementById('modal-reset').classList.remove('is-open')">Cancelar</button>
+        <button type="button" class="btn-admin-action" onclick="document.getElementById('modal-reset').classList.remove('is-open')">Cancelar</button>
         <button type="button" class="btn-admin-action btn-danger" id="btn-confirm-reset">Sí, Reiniciar Torneo</button>
       </div>
     </div>
@@ -338,8 +388,8 @@
         <button type="button" class="modal-close-btn" id="btn-close-qr" aria-label="Cerrar modal">&times;</button>
       </div>
       <div class="qr-modal-content">
-        <p style="font-size:0.88rem; color:var(--text-muted);">
-          Escanea el código QR con cualquier dispositivo o móvil para acceder a la plataforma en tiempo real.
+        <p style="font-size:0.9rem; color:var(--text-muted);">
+          Escanea el código QR para acceder a la web oficial en Netlify con actualización en tiempo real desde Supabase:
         </p>
         <div class="qr-canvas-container" id="qr-canvas-wrap">
           <!-- QR renderizado aquí -->
@@ -351,7 +401,7 @@
   <!-- FOOTER -->
   <footer class="app-footer">
     <p>🎱 <strong>Torneo Snooker Blackpool Madrid</strong> | Sedes Vallecas & Alcobendas</p>
-    <p style="margin-top:0.35rem; color:var(--text-dim);">Desarrollado para despliegue estático en Netlify | Persistencia LocalStorage</p>
+    <p style="margin-top:0.35rem; color:var(--text-dim);">Base de datos en tiempo real con Supabase | Despliegue en Netlify</p>
   </footer>
 
   <!-- SCRIPTS -->

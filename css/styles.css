@@ -82,7 +82,7 @@ body {
 
 .hero-header {
   position: relative;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(21, 23, 34, 0.98) 100%);
+  background: linear-gradient(180deg, rgba(30, 45, 81, 0.95) 0%, rgba(21, 23, 34, 0.98) 100%);
   border-bottom: 2px solid var(--border-gold);
   box-shadow: var(--shadow-md);
   padding: 1.5rem 1rem 1.25rem;
