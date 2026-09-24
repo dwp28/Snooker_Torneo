@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Torneo Snooker Blackpool Madrid | Gestión de Resultados</title>
+  <meta name="description" content="Plataforma de gestión de resultados y clasificación en vivo para el Torneo de Snooker Blackpool Madrid - Sedes Vallecas y Alcobendas.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+</head>
+<body>
+
+  <!-- HERO & BRAND HEADER -->
+  <header class="hero-header">
+    <div class="hero-bg-texture"></div>
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-title-wrap">
+          <div class="brand-badge">
+            <img src="IMG/Snooker2.jpg" alt="Logo Snooker Blackpool">
+          </div>
+          <div class="brand-text">
+            <h1>🎱 TORNEO SNOOKER <span class="gold-highlight">BLACKPOOL MADRID</span> 🎱</h1>
+            <div class="brand-subtitle">
+              <span>Gestión Oficial de Resultados</span>
+              <span class="venue-tag">📍 Vallecas (VF)</span>
+              <span class="venue-tag">📍 Alcobendas (BBM)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats & Actions -->
+        <div class="quick-stats-bar">
+          <div class="stat-pill" title="Partidos finalizados de la fase de grupos">
+            <span class="stat-label">Partidos:</span>
+            <span class="stat-val" id="stat-matches-completed">0/48</span>
+          </div>
+          <div class="stat-pill" title="Puntos totales acumulados en todos los frames">
+            <span class="stat-label">Puntos Totales:</span>
+            <span class="stat-val" id="stat-total-points">0</span>
+          </div>
+          <div class="stat-pill" title="Progreso global de la fase de grupos">
+            <span class="stat-label">Progreso:</span>
+            <span class="stat-val" id="stat-progress-percent">0%</span>
+          </div>
+          <button type="button" class="btn-quick-save" id="btn-share-qr" title="Compartir torneo con código QR o pantalla">
+            📱 Compartir QR
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="nav-tabs-wrapper" aria-label="Navegación del torneo">
+    <div class="nav-tabs-container">
+      <button type="button" class="nav-tab-btn active" data-tab="matches">
+        <span>📊</span> Partidos
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="groups">
+        <span>🏆</span> Grupos (Clasificación)
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="frames">
+        <span>📈</span> Desglose por Frame
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="playoffs">
+        <span>👑</span> Fase Final
+      </button>
+      <button type="button" class="nav-tab-btn tab-admin" data-tab="admin">
+        <span>⚙️</span> Administración
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <main class="main-content">
+
+    <!-- ====================================================================
+         TAB 1: PARTIDOS (MATCHES)
+         ==================================================================== -->
+    <section class="tab-pane active" id="tab-matches">
+      <div class="section-toolbar">
+        <div class="toolbar-title">
+          <span>🎱</span>
+          <span>Partidos de la Fase de Grupos</span>
+        </div>
+        
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+          <!-- Selector de Sede -->
+          <div class="venue-segmented-control">
+            <button type="button" class="venue-pill-btn active" data-venue="vallecas">
+              📍 Vallecas (Grupos 1-4)
+            </button>
+            <button type="button" class="venue-pill-btn" data-venue="alcobendas">
+              📍 Alcobendas (Grupos 5-8)
+            </button>
+          </div>
+
+          <!-- Filtro por Grupo específico -->
+          <select class="filter-group-select" id="filter-group-matches" aria-label="Filtrar por grupo">
+            <option value="all">Todos los Grupos (1 al 4)</option>
+            <option value="1">Grupo 1</option>
+            <option value="2">Grupo 2</option>
+            <option value="3">Grupo 3</option>
+            <option value="4">Grupo 4</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="info-notice">
+        <span>💡</span>
+        <div>
+          <strong>Regla de Partido:</strong> Cada partido se juega al <strong>Mejor de 3 Frames</strong> (gana quien llegue a 2 frames ganados). 
+          Anota los <strong>puntos individuales</strong> de cada jugador en cada frame; el ganador del frame y del partido se calcularán automáticamente.
+        </div>
+      </div>
+
+      <!-- Grid de Partidos por Grupo -->
+      <div class="groups-matches-grid" id="matches-container">
+        <!-- Renderizado dinámicamente con JavaScript -->
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 2: GRUPOS (STANDINGS)
+         ==================================================================== -->
+    <section class="tab-pane" id="tab-groups">
+      <div class="section-toolbar">
+        <div class="toolbar-title">
+          <span>🏆</span>
+          <span>Clasificación en Vivo de Grupos</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+          <div class="venue-segmented-control">
+            <button type="button" class="venue-pill-btn active" data-venue="vallecas">
+              📍 Vallecas (Grupos 1-4)
+            </button>
+            <button type="button" class="venue-pill-btn" data-venue="alcobendas">
+              📍 Alcobendas (Grupos 5-8)
+            </button>
+          </div>
+
+          <select class="filter-group-select" id="filter-group-standings" aria-label="Filtrar grupos en clasificación">
+            <option value="all">Todos los Grupos (1 al 4)</option>
+            <option value="1">Grupo 1</option>
+            <option value="2">Grupo 2</option>
+            <option value="3">Grupo 3</option>
+            <option value="4">Grupo 4</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="info-notice">
+        <span>⭐</span>
+        <div>
+          <strong>Criterio de Desempate Oficial:</strong> En caso de empate en partidos ganados y frames ganados, el desempate se resuelve por <strong>Puntos Totales Acumulados</strong> en todos los frames jugados. Los <strong>2 primeros puestos (1º y 2º)</strong> de cada grupo clasifican a la Fase Final (16avos).
+        </div>
+      </div>
+
+      <!-- Tablas de Clasificación -->
+      <div class="standings-grid" id="standings-container">
+        <!-- Renderizado dinámicamente con JavaScript -->
+      </div>
+
+      <div class="standings-legend">
+        <div class="legend-item">
+          <span class="legend-color" style="background:var(--gold-light);"></span>
+          <span>1º Puesto: Clasifica a Playoffs como cabeza de serie</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background:#94a3b8;"></span>
+          <span>2º Puesto: Clasifica a Playoffs</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background:var(--snooker-green-light);"></span>
+          <span>⭐ Puntos Totales: Desempate principal</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 3: DESGLOSE POR FRAME (FRAMES)
+         ==================================================================== -->
+    <section class="tab-pane" id="tab-frames">
+      <div class="section-toolbar">
+        <div class="toolbar-title">
+          <span>📈</span>
+          <span>Auditoría y Desglose Individual Frame a Frame</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+          <div class="venue-segmented-control">
+            <button type="button" class="venue-pill-btn active" data-venue="vallecas">
+              📍 Vallecas (Grupos 1-4)
+            </button>
+            <button type="button" class="venue-pill-btn" data-venue="alcobendas">
+              📍 Alcobendas (Grupos 5-8)
+            </button>
+          </div>
+
+          <select class="filter-group-select" id="filter-group-frames" aria-label="Filtrar frames">
+            <option value="all">Todos los Grupos</option>
+            <option value="1">Grupo 1</option>
+            <option value="2">Grupo 2</option>
+            <option value="3">Grupo 3</option>
+            <option value="4">Grupo 4</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="info-notice">
+        <span>🔍</span>
+        <div>
+          Visualiza cada frame individual jugado en cada partido con sus marcadores detallados, ganador y diferencia de puntos.
+        </div>
+      </div>
+
+      <div class="frames-timeline-container" id="frames-container">
+        <!-- Renderizado dinámicamente con JavaScript -->
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 4: FASE FINAL / PLAYOFFS (BRACKET)
+         ==================================================================== -->
+    <section class="tab-pane" id="tab-playoffs">
+      <div class="section-toolbar">
+        <div class="toolbar-title">
+          <span>👑</span>
+          <span>Cuadro de Fase Final (16 Clasificados)</span>
+        </div>
+      </div>
+
+      <div class="info-notice">
+        <span>🏆</span>
+        <div>
+          Los cruces se alimentan automáticamente de la clasificación de los 8 grupos: <strong>1º Gr1 vs 2º Gr2, 1º Gr3 vs 2º Gr4, 1º Gr5 vs 2º Gr6, 1º Gr7 vs 2º Gr8, etc.</strong> Puedes anotar los frames ganados en cada eliminatoria hasta coronar al Campeón.
+        </div>
+      </div>
+
+      <div id="playoffs-container">
+        <!-- Renderizado dinámicamente con JavaScript -->
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 5: ADMINISTRACIÓN (ADMIN)
+         ==================================================================== -->
+    <section class="tab-pane" id="tab-admin">
+      <div class="section-toolbar">
+        <div class="toolbar-title">
+          <span>⚙️</span>
+          <span>Zona de Administración y Respaldo</span>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <!-- Tarjeta de Guardado / Exportar -->
+        <div class="admin-card">
+          <h3>💾 Respaldo y Copias de Seguridad</h3>
+          <p>Los datos se guardan de forma instantánea en tu navegador (LocalStorage). Descarga un archivo JSON como copia de seguridad.</p>
+          <div class="admin-btn-group">
+            <button type="button" class="btn-admin-action btn-primary" id="btn-export-json">
+              📥 Descargar Backup JSON
+            </button>
+            <label class="btn-admin-action" style="cursor:pointer; margin:0;">
+              📤 Restaurar Backup JSON
+              <input type="file" id="file-import-json" accept=".json" style="display:none;">
+            </label>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Reinicio -->
+        <div class="admin-card">
+          <h3 style="color:#fca5a5;">⚠️ Zona de Peligro / Reinicio</h3>
+          <p>Reinicia todos los resultados de los 48 partidos del torneo. Puedes elegir conservar o restablecer los nombres de los 32 jugadores.</p>
+          <div class="admin-btn-group">
+            <button type="button" class="btn-admin-action btn-danger" id="btn-open-reset-modal">
+              🔄 Reiniciar Torneo
+            </button>
+          </div>
+        </div>
+
+        <!-- Editor de Nombres de Jugadores -->
+        <div class="admin-card player-names-editor-wrap">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <h3>👥 Gestión de Jugadores (32 Jugadores)</h3>
+              <p>Personaliza los nombres de los participantes para que aparezcan en los grupos y partidos.</p>
+            </div>
+            <button type="button" class="btn-quick-save" id="btn-save-player-names">
+              💾 Guardar Todos los Nombres
+            </button>
+          </div>
+
+          <div class="player-inputs-grid" id="admin-player-inputs">
+            <!-- Renderizado dinámicamente -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       MODALES
+       ==================================================================== -->
+
+  <!-- Modal de Reinicio Seguro -->
+  <div class="modal-backdrop" id="modal-reset" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="color:#fca5a5;">⚠️ Advertencia de Seguridad</h3>
+        <button type="button" class="modal-close-btn" id="btn-cancel-reset" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div>
+        <p style="margin-bottom:1rem; color:var(--text-main);">
+          ¿Estás seguro de que deseas <strong>reiniciar TODOS los resultados</strong> del torneo?
+        </p>
+        <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--text-muted); cursor:pointer;">
+          <input type="checkbox" id="chk-reset-names">
+          <span>También restablecer nombres de jugadores a "Jugador 1..32"</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-admin-action" id="btn-cancel-reset-2" onclick="document.getElementById('modal-reset').classList.remove('is-open')">Cancelar</button>
+        <button type="button" class="btn-admin-action btn-danger" id="btn-confirm-reset">Sí, Reiniciar Torneo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Compartir QR -->
+  <div class="modal-backdrop" id="modal-qr" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>📱 Compartir Torneo en Vivo</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-qr" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div class="qr-modal-content">
+        <p style="font-size:0.88rem; color:var(--text-muted);">
+          Escanea el código QR con cualquier dispositivo o móvil para acceder a la plataforma en tiempo real.
+        </p>
+        <div class="qr-canvas-container" id="qr-canvas-wrap">
+          <!-- QR renderizado aquí -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="app-footer">
+    <p>🎱 <strong>Torneo Snooker Blackpool Madrid</strong> | Sedes Vallecas & Alcobendas</p>
+    <p style="margin-top:0.35rem; color:var(--text-dim);">Desarrollado para despliegue estático en Netlify | Persistencia LocalStorage</p>
+  </footer>
+
+  <!-- SCRIPTS -->
+  <script src="js/tournamentData.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
