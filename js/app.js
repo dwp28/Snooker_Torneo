@@ -1,6 +1,6 @@
 /**
  * TORNEO SNOOKER BLACKPOOL MADRID - APP CONTROLLER V3
- * Filtros Intuitivos por Grupo, Mesa y Hora | Nombres Grandes | Supabase Live Sync
+ * Filtros Intuitivos por Grupo, Mesa, Hora y Jugador | Nombres Grandes | Supabase Live Sync
  */
 
 let tournamentState = null;
@@ -12,6 +12,10 @@ let filterGroup = 'all';
 let filterTable = 'all';
 let filterHour = 'all';
 let filterStatus = 'all';
+let filterPlayerMatches = 'all';
+
+// Filtro por jugador en la Fase Final
+let filterPlayerPlayoffs = 'all';
 
 let isAdminAuthenticated = false;
 let autoSyncInterval = null;
@@ -31,6 +35,9 @@ async function initApp() {
   tournamentState = loadTournamentDataLocal();
   setupNavigation();
   setupEventListeners();
+  updateGroupFilterOptions();
+  updateMatchesPlayerFilterOptions();
+  updateGroupsVenueBanner();
   renderAllViews();
   updateHeaderStats();
 
@@ -135,6 +142,14 @@ function updateSupabaseAlertBanner() {
 }
 
 /**
+ * Devuelve el nombre de la sede (Vallecas/Alcobendas) a la que pertenece un grupo,
+ * según el mapeo vigente en VENUES.groupIndices.
+ */
+function getVenueNameForGroup(groupNum) {
+  return VENUES.VALLECAS.groupIndices.includes(groupNum) ? VENUES.VALLECAS.shortName : VENUES.ALCOBENDAS.shortName;
+}
+
+/**
  * Navegación y Filtros
  */
 function setupNavigation() {
@@ -157,6 +172,7 @@ function setupNavigation() {
   const selTable = document.getElementById('filter-matches-table');
   const selHour = document.getElementById('filter-matches-hour');
   const selStatus = document.getElementById('filter-matches-status');
+  const selPlayer = document.getElementById('filter-matches-player');
   const btnReset = document.getElementById('btn-reset-match-filters');
 
   if (selGroup) {
@@ -183,6 +199,12 @@ function setupNavigation() {
       renderMatchesView();
     });
   }
+  if (selPlayer) {
+    selPlayer.addEventListener('change', (e) => {
+      filterPlayerMatches = e.target.value;
+      renderMatchesView();
+    });
+  }
   if (btnReset) {
     btnReset.addEventListener('click', () => {
       resetMatchFilters();
@@ -197,6 +219,15 @@ function setupNavigation() {
       renderStandingsView();
     });
   }
+
+  // Filtro por jugador en la Fase Final
+  const selPlayoffsPlayer = document.getElementById('filter-playoffs-player');
+  if (selPlayoffsPlayer) {
+    selPlayoffsPlayer.addEventListener('change', (e) => {
+      filterPlayerPlayoffs = e.target.value;
+      renderPlayoffsView();
+    });
+  }
 }
 
 function resetMatchFilters() {
@@ -204,16 +235,19 @@ function resetMatchFilters() {
   filterTable = 'all';
   filterHour = 'all';
   filterStatus = 'all';
+  filterPlayerMatches = 'all';
 
   const g = document.getElementById('filter-matches-group');
   const t = document.getElementById('filter-matches-table');
   const h = document.getElementById('filter-matches-hour');
   const s = document.getElementById('filter-matches-status');
+  const p = document.getElementById('filter-matches-player');
 
   if (g) g.value = 'all';
   if (t) t.value = 'all';
   if (h) h.value = 'all';
   if (s) s.value = 'all';
+  if (p) p.value = 'all';
 
   renderMatchesView();
 }
@@ -235,7 +269,9 @@ function switchVenue(venueId) {
     b.classList.toggle('active', b.getAttribute('data-venue') === venueId);
   });
   updateGroupFilterOptions();
+  updateGroupsVenueBanner();
   resetMatchFilters();
+  updateMatchesPlayerFilterOptions();
   renderCurrentView();
 }
 
@@ -248,10 +284,70 @@ function updateGroupFilterOptions() {
 
   filterSelects.forEach(select => {
     if (!select) return;
-    select.innerHTML = `<option value="all">Todos los Grupos (${currentVenue === 'vallecas' ? '1 al 4' : '5 al 8'})</option>` +
+    select.innerHTML = `<option value="all">Todos los Grupos (${groupIndices.join(', ')})</option>` +
       groupIndices.map(g => `<option value="${g}">Grupo ${g}</option>`).join('');
     select.value = 'all';
   });
+}
+
+/**
+ * Rellena el selector de "Jugador" de la pestaña Partidos con los jugadores
+ * de los grupos de la sede seleccionada actualmente.
+ */
+function updateMatchesPlayerFilterOptions() {
+  const select = document.getElementById('filter-matches-player');
+  if (!select || !tournamentState) return;
+
+  const groupIndices = VENUES[currentVenue.toUpperCase()].groupIndices;
+  const playerIds = [];
+  groupIndices.forEach(gId => {
+    const group = tournamentState.groups[gId];
+    if (group) playerIds.push(...group.playerIds);
+  });
+
+  const currentValue = select.value;
+  select.innerHTML = `<option value="all">Todos los Jugadores</option>` +
+    playerIds.map(pId => `<option value="${pId}">${escapeHtml(tournamentState.players[pId]?.name || `Jugador ${pId}`)}</option>`).join('');
+
+  if (currentValue === 'all' || playerIds.map(String).includes(currentValue)) {
+    select.value = currentValue;
+  } else {
+    select.value = 'all';
+    filterPlayerMatches = 'all';
+  }
+}
+
+/**
+ * Rellena el selector de "Jugador" de la Fase Final con los 32 jugadores del torneo.
+ */
+function updatePlayoffsPlayerFilterOptions() {
+  const select = document.getElementById('filter-playoffs-player');
+  if (!select || !tournamentState) return;
+
+  const currentValue = select.value;
+  let html = `<option value="all">Todos los Jugadores</option>`;
+  for (let i = 1; i <= 32; i++) {
+    const name = (tournamentState.players[i] && tournamentState.players[i].name) || `Jugador ${i}`;
+    html += `<option value="${i}">${escapeHtml(name)}</option>`;
+  }
+  select.innerHTML = html;
+  select.value = currentValue || 'all';
+}
+
+/**
+ * Actualiza la imagen de la sede (banner) mostrada en la pestaña Grupos.
+ */
+function updateGroupsVenueBanner() {
+  const banner = document.getElementById('groups-venue-banner');
+  if (!banner) return;
+
+  if (currentVenue === 'vallecas') {
+    banner.src = 'IMG/vallecas.jpg';
+    banner.alt = 'Sede Vallecas - Black Ball Madrid';
+  } else {
+    banner.src = 'IMG/alcobendas.jpg';
+    banner.alt = 'Sede Alcobendas - Club Snooker Valdelasfuentes';
+  }
 }
 
 /**
@@ -460,6 +556,8 @@ function renderMatchesView() {
   const container = document.getElementById('matches-container');
   if (!container) return;
 
+  updateMatchesPlayerFilterOptions();
+
   const targetGroupIndices = VENUES[currentVenue.toUpperCase()].groupIndices;
 
   // Recolectar todos los partidos de la sede seleccionada
@@ -471,7 +569,7 @@ function renderMatchesView() {
     });
   });
 
-  // Aplicar filtros: Grupo, Mesa, Hora, Estado
+  // Aplicar filtros: Grupo, Mesa, Hora, Estado, Jugador
   let filtered = allVenueMatches.filter(({ match, group }) => {
     // 1. Filtro por grupo
     if (filterGroup !== 'all' && group.id.toString() !== filterGroup.toString()) {
@@ -495,6 +593,11 @@ function renderMatchesView() {
       if (filterStatus === 'completed' && !isCompleted) return false;
       if (filterStatus === 'in_progress' && !isProgress) return false;
       if (filterStatus === 'pending' && !isPending) return false;
+    }
+    // 5. Filtro por jugador
+    if (filterPlayerMatches !== 'all') {
+      const playerIdNum = parseInt(filterPlayerMatches);
+      if (match.player1Id !== playerIdNum && match.player2Id !== playerIdNum) return false;
     }
     return true;
   });
@@ -581,6 +684,17 @@ function renderSingleMatchCard(match, group) {
 
   const winnerName = p1IsWinner ? p1.name : (p2IsWinner ? p2.name : null);
 
+  const scheduleControls = isAdminAuthenticated ? `
+    <select class="schedule-edit-day" data-match="${match.id}" title="Cambiar día">
+      <option value="Viernes" ${match.day === 'Viernes' ? 'selected' : ''}>Viernes</option>
+      <option value="Sábado" ${match.day === 'Sábado' ? 'selected' : ''}>Sábado</option>
+      <option value="Domingo" ${match.day === 'Domingo' ? 'selected' : ''}>Domingo</option>
+    </select>
+    <input type="time" class="schedule-edit-time" data-match="${match.id}" value="${escapeHtml(match.time || '12:00')}" title="Cambiar hora">
+  ` : `
+    <span>${escapeHtml(match.day || 'Viernes')} · ${escapeHtml(match.time || '12:00')}</span>
+  `;
+
   return `
     <div class="match-card ${cardClass}" id="card-${match.id}" data-match-id="${match.id}">
       
@@ -588,7 +702,7 @@ function renderSingleMatchCard(match, group) {
       <div class="match-card-schedule-header">
         <div class="schedule-badge-highlight">
           <span>🕒</span>
-          <span>${escapeHtml(match.day || 'Viernes')} · ${escapeHtml(match.time || '12:00')}</span>
+          ${scheduleControls}
         </div>
         <div style="display:flex; align-items:center; gap:0.5rem;">
           <span class="table-badge-highlight">${escapeHtml(match.table || 'Mesa 1')} · ${escapeHtml(match.venueName || 'Vallecas')}</span>
@@ -700,6 +814,20 @@ function attachMatchInputListeners() {
     });
   });
 
+  document.querySelectorAll('.schedule-edit-day').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const matchId = e.target.getAttribute('data-match');
+      handleScheduleChange(matchId, 'day', e.target.value);
+    });
+  });
+
+  document.querySelectorAll('.schedule-edit-time').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const matchId = e.target.getAttribute('data-match');
+      handleScheduleChange(matchId, 'time', e.target.value);
+    });
+  });
+
   document.querySelectorAll('.btn-clear-match').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const matchId = btn.getAttribute('data-match');
@@ -734,6 +862,17 @@ function handleBreakChange(matchId, playerKey, value) {
 
   saveTournamentDataAsync(tournamentState);
   updateHeaderStats();
+}
+
+function handleScheduleChange(matchId, field, value) {
+  const match = findMatchById(matchId);
+  if (!match) return;
+
+  if (field === 'day') match.day = value;
+  if (field === 'time') match.time = value;
+
+  saveTournamentDataAsync(tournamentState);
+  showToast('🕒 Horario del partido actualizado', 'success');
 }
 
 function handleFrameScoreChange(matchId, frameIdx, playerKey, value) {
@@ -1011,12 +1150,26 @@ function renderFramesView() {
  * VISTA 4: FASE FINAL (OCTAVOS -> CUARTOS -> SEMIS -> FINAL)
  * =========================================================================
  */
+function playoffMatchPassesPlayerFilter(match) {
+  if (filterPlayerPlayoffs === 'all') return true;
+  const playerIdNum = parseInt(filterPlayerPlayoffs);
+  return match.player1Id === playerIdNum || match.player2Id === playerIdNum;
+}
+
 function renderPlayoffsView() {
   const container = document.getElementById('playoffs-container');
   if (!container) return;
 
   updatePlayoffQualifiers(tournamentState);
+  updatePlayoffsPlayerFilterOptions();
   const po = tournamentState.playoffs;
+
+  const octavosFiltered = po.octavos.filter(playoffMatchPassesPlayerFilter);
+  const cuartosFiltered = po.cuartos.filter(playoffMatchPassesPlayerFilter);
+  const semisFiltered = po.semifinales.filter(playoffMatchPassesPlayerFilter);
+  const finalPasses = playoffMatchPassesPlayerFilter(po.final);
+
+  const emptyRoundNotice = `<div style="text-align:center; color:var(--text-dim); font-size:0.85rem; padding:1rem;">Sin partidos de este jugador en esta ronda</div>`;
 
   let html = `
     <div class="bracket-wrapper">
@@ -1026,7 +1179,7 @@ function renderPlayoffsView() {
         <div class="bracket-round-column">
           <div class="bracket-round-header">Octavos de Final (8 Partidos)</div>
           <div class="bracket-matches-list">
-            ${po.octavos.map(m => renderPlayoffNode(m, 'octavos')).join('')}
+            ${octavosFiltered.length > 0 ? octavosFiltered.map(m => renderPlayoffNode(m, 'octavos')).join('') : emptyRoundNotice}
           </div>
         </div>
 
@@ -1034,7 +1187,7 @@ function renderPlayoffsView() {
         <div class="bracket-round-column">
           <div class="bracket-round-header">Cuartos de Final (4 Partidos)</div>
           <div class="bracket-matches-list">
-            ${po.cuartos.map(m => renderPlayoffNode(m, 'cuartos')).join('')}
+            ${cuartosFiltered.length > 0 ? cuartosFiltered.map(m => renderPlayoffNode(m, 'cuartos')).join('') : emptyRoundNotice}
           </div>
         </div>
 
@@ -1042,7 +1195,7 @@ function renderPlayoffsView() {
         <div class="bracket-round-column">
           <div class="bracket-round-header">Semifinales (Domingo 09:00)</div>
           <div class="bracket-matches-list">
-            ${po.semifinales.map(m => renderPlayoffNode(m, 'semifinales')).join('')}
+            ${semisFiltered.length > 0 ? semisFiltered.map(m => renderPlayoffNode(m, 'semifinales')).join('') : emptyRoundNotice}
           </div>
         </div>
 
@@ -1050,7 +1203,7 @@ function renderPlayoffsView() {
         <div class="bracket-round-column">
           <div class="bracket-round-header">🏆 Gran Final (Domingo 13:00)</div>
           <div class="bracket-matches-list">
-            ${renderPlayoffNode(po.final, 'final')}
+            ${finalPasses ? renderPlayoffNode(po.final, 'final') : emptyRoundNotice}
           </div>
         </div>
 
@@ -1072,6 +1225,9 @@ function renderPlayoffsView() {
 
   container.innerHTML = html;
   attachPlayoffScoreListeners();
+  attachPlayoffBreakListeners();
+  attachPlayoffScheduleListeners();
+  renderTopBreaksPanel();
 }
 
 function renderPlayoffNode(match, roundKey) {
@@ -1085,11 +1241,22 @@ function renderPlayoffNode(match, roundKey) {
   const p2Won = match.winnerId && match.player2Id && match.winnerId === match.player2Id;
   const disabledAttr = (!isAdminAuthenticated || !match.player1Id || !match.player2Id) ? 'disabled' : '';
 
+  const scheduleControls = isAdminAuthenticated ? `
+    <span class="bracket-schedule-edit">
+      <select class="bracket-schedule-day" data-round="${roundKey}" data-playoff-id="${match.id}" title="Cambiar día">
+        <option value="Viernes" ${match.day === 'Viernes' ? 'selected' : ''}>Vie</option>
+        <option value="Sábado" ${match.day === 'Sábado' ? 'selected' : ''}>Sáb</option>
+        <option value="Domingo" ${match.day === 'Domingo' ? 'selected' : ''}>Dom</option>
+      </select>
+      <input type="time" class="bracket-schedule-time" data-round="${roundKey}" data-playoff-id="${match.id}" value="${escapeHtml(match.time || '')}" title="Cambiar hora">
+    </span>
+  ` : `<span class="bracket-node-schedule">${match.day || ''} ${match.time || ''}</span>`;
+
   return `
     <div class="bracket-match-node" data-round="${roundKey}" data-playoff-id="${match.id}">
       <div class="bracket-node-header">
         <span>${escapeHtml(match.label)}</span>
-        <span class="bracket-node-schedule">${match.day || ''} ${match.time || ''}</span>
+        ${scheduleControls}
       </div>
 
       <div class="bracket-participant-row ${p1Won ? 'is-winner' : ''}">
@@ -1102,6 +1269,26 @@ function renderPlayoffNode(match, roundKey) {
         <span class="bracket-participant-name" title="${escapeHtml(p2Name)}">${p2Won ? '🏆 ' : ''}${escapeHtml(p2Name)}</span>
         <input type="number" min="0" max="3" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p2" 
                value="${match.p2FramesWon || 0}" ${disabledAttr}>
+      </div>
+
+      <!-- Break Máximo de Fase Final (con el jugador indicado debajo, en pequeño) -->
+      <div class="bracket-breaks-row">
+        <div class="bracket-break-box">
+          <span>🔥</span>
+          <div class="bracket-break-input-wrap">
+            <input type="number" min="0" max="155" placeholder="-" class="bracket-break-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p1"
+                   value="${match.p1HighestBreak !== null && match.p1HighestBreak !== undefined ? match.p1HighestBreak : ''}" ${disabledAttr}>
+            <span class="bracket-break-player-label" title="${escapeHtml(p1Name)}">${escapeHtml(p1Name)}</span>
+          </div>
+        </div>
+        <div class="bracket-break-box">
+          <div class="bracket-break-input-wrap">
+            <input type="number" min="0" max="155" placeholder="-" class="bracket-break-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p2"
+                   value="${match.p2HighestBreak !== null && match.p2HighestBreak !== undefined ? match.p2HighestBreak : ''}" ${disabledAttr}>
+            <span class="bracket-break-player-label" title="${escapeHtml(p2Name)}">${escapeHtml(p2Name)}</span>
+          </div>
+          <span>🔥</span>
+        </div>
       </div>
     </div>
   `;
@@ -1120,15 +1307,17 @@ function attachPlayoffScoreListeners() {
   });
 }
 
-async function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
+function findPlayoffMatch(roundKey, playoffId) {
   const po = tournamentState.playoffs;
-  let match = null;
+  if (roundKey === 'octavos') return po.octavos.find(m => m.id === playoffId);
+  if (roundKey === 'cuartos') return po.cuartos.find(m => m.id === playoffId);
+  if (roundKey === 'semifinales') return po.semifinales.find(m => m.id === playoffId);
+  if (roundKey === 'final') return po.final;
+  return null;
+}
 
-  if (roundKey === 'octavos') match = po.octavos.find(m => m.id === playoffId);
-  else if (roundKey === 'cuartos') match = po.cuartos.find(m => m.id === playoffId);
-  else if (roundKey === 'semifinales') match = po.semifinales.find(m => m.id === playoffId);
-  else if (roundKey === 'final') match = po.final;
-
+async function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
+  const match = findPlayoffMatch(roundKey, playoffId);
   if (!match) return;
 
   if (playerKey === 'p1') match.p1FramesWon = val;
@@ -1150,6 +1339,162 @@ async function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
 }
 
 /**
+ * Listeners y handler para los inputs de Break Máximo en la Fase Final
+ * (Octavos, Cuartos, Semifinales y Gran Final)
+ */
+function attachPlayoffBreakListeners() {
+  document.querySelectorAll('.bracket-break-input').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      const roundKey = e.target.getAttribute('data-round');
+      const playoffId = e.target.getAttribute('data-playoff-id');
+      const playerKey = e.target.getAttribute('data-player');
+      const value = e.target.value.trim() === '' ? null : parseInt(e.target.value);
+
+      await handlePlayoffBreakUpdate(roundKey, playoffId, playerKey, value);
+    });
+  });
+}
+
+async function handlePlayoffBreakUpdate(roundKey, playoffId, playerKey, value) {
+  const match = findPlayoffMatch(roundKey, playoffId);
+  if (!match) return;
+
+  if (playerKey === 'p1') match.p1HighestBreak = value;
+  if (playerKey === 'p2') match.p2HighestBreak = value;
+
+  await saveTournamentDataAsync(tournamentState);
+  renderPlayoffsView();
+}
+
+/**
+ * Listeners y handler para editar el día/hora de los partidos de la Fase Final
+ */
+function attachPlayoffScheduleListeners() {
+  document.querySelectorAll('.bracket-schedule-day').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      const roundKey = e.target.getAttribute('data-round');
+      const playoffId = e.target.getAttribute('data-playoff-id');
+      await handlePlayoffScheduleUpdate(roundKey, playoffId, 'day', e.target.value);
+    });
+  });
+
+  document.querySelectorAll('.bracket-schedule-time').forEach(inp => {
+    inp.addEventListener('change', async (e) => {
+      const roundKey = e.target.getAttribute('data-round');
+      const playoffId = e.target.getAttribute('data-playoff-id');
+      await handlePlayoffScheduleUpdate(roundKey, playoffId, 'time', e.target.value);
+    });
+  });
+}
+
+async function handlePlayoffScheduleUpdate(roundKey, playoffId, field, value) {
+  const match = findPlayoffMatch(roundKey, playoffId);
+  if (!match) return;
+
+  if (field === 'day') match.day = value;
+  if (field === 'time') match.time = value;
+
+  await saveTournamentDataAsync(tournamentState);
+  renderPlayoffsView();
+}
+
+/**
+ * =========================================================================
+ * TOP 3 BREAKS DEL TORNEO (GRUPOS + FASE FINAL)
+ * =========================================================================
+ */
+function collectAllBreaks() {
+  const breaks = [];
+
+  // Breaks registrados en la Fase de Grupos
+  for (let g = 1; g <= 8; g++) {
+    const group = tournamentState.groups[g];
+    group.matches.forEach(m => {
+      if (m.p1HighestBreak !== null && m.p1HighestBreak !== '' && !isNaN(Number(m.p1HighestBreak)) && Number(m.p1HighestBreak) > 0) {
+        breaks.push({
+          playerId: m.player1Id,
+          value: Number(m.p1HighestBreak),
+          stage: `${group.name} · Partido ${m.matchNumber}`
+        });
+      }
+      if (m.p2HighestBreak !== null && m.p2HighestBreak !== '' && !isNaN(Number(m.p2HighestBreak)) && Number(m.p2HighestBreak) > 0) {
+        breaks.push({
+          playerId: m.player2Id,
+          value: Number(m.p2HighestBreak),
+          stage: `${group.name} · Partido ${m.matchNumber}`
+        });
+      }
+    });
+  }
+
+  // Breaks registrados en la Fase Final (Octavos, Cuartos, Semifinales, Final)
+  const po = tournamentState.playoffs || {};
+  const playoffMatches = [
+    ...(po.octavos || []),
+    ...(po.cuartos || []),
+    ...(po.semifinales || []),
+    ...(po.final ? [po.final] : [])
+  ];
+
+  playoffMatches.forEach(m => {
+    if (m.player1Id && m.p1HighestBreak !== null && m.p1HighestBreak !== '' && !isNaN(Number(m.p1HighestBreak)) && Number(m.p1HighestBreak) > 0) {
+      breaks.push({
+        playerId: m.player1Id,
+        value: Number(m.p1HighestBreak),
+        stage: m.roundName || m.label
+      });
+    }
+    if (m.player2Id && m.p2HighestBreak !== null && m.p2HighestBreak !== '' && !isNaN(Number(m.p2HighestBreak)) && Number(m.p2HighestBreak) > 0) {
+      breaks.push({
+        playerId: m.player2Id,
+        value: Number(m.p2HighestBreak),
+        stage: m.roundName || m.label
+      });
+    }
+  });
+
+  return breaks.map(b => ({
+    ...b,
+    playerName: (tournamentState.players[b.playerId] && tournamentState.players[b.playerId].name) || `Jugador ${b.playerId}`
+  }));
+}
+
+function renderTopBreaksPanel() {
+  const container = document.getElementById('top-breaks-podium');
+  if (!container) return;
+
+  const topBreaks = collectAllBreaks().sort((a, b) => b.value - a.value).slice(0, 3);
+  const medals = ['🥇', '🥈', '🥉'];
+  const rankClasses = ['rank-1', 'rank-2', 'rank-3'];
+
+  let html = '';
+  for (let i = 0; i < 3; i++) {
+    const entry = topBreaks[i];
+    if (entry) {
+      html += `
+        <div class="break-rank-card ${rankClasses[i]}">
+          <span class="break-rank-medal">${medals[i]}</span>
+          <span class="break-rank-score">${entry.value}</span>
+          <span class="break-rank-player">${escapeHtml(entry.playerName)}</span>
+          <span class="break-rank-stage">${escapeHtml(entry.stage || '')}</span>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="break-rank-card rank-empty">
+          <span class="break-rank-medal">${medals[i]}</span>
+          <span class="break-rank-score">-</span>
+          <span class="break-rank-player">Sin registrar</span>
+          <span class="break-rank-stage">-</span>
+        </div>
+      `;
+    }
+  }
+
+  container.innerHTML = html;
+}
+
+/**
  * =========================================================================
  * VISTA 5: ADMINISTRACIÓN (ADMIN VIEW)
  * =========================================================================
@@ -1162,14 +1507,14 @@ function renderAdminView() {
   for (let i = 1; i <= 32; i++) {
     const p = tournamentState.players[i] || { name: `Jugador ${i}` };
     const groupNum = Math.ceil(i / 4);
-    const venueName = groupNum <= 4 ? 'Vallecas' : 'Alcobendas';
+    const venueName = getVenueNameForGroup(groupNum);
     const disabledAttr = !isAdminAuthenticated ? 'disabled' : '';
 
     html += `
       <div class="player-input-item" style="display:flex; align-items:center; gap:0.6rem; background:var(--bg-input); padding:0.55rem 0.8rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
         <span class="player-num-tag" style="font-size:0.85rem; font-weight:900; color:var(--gold); width:28px;">#${i}</span>
+        <span style="font-size:0.75rem; color:var(--text-dim); white-space:nowrap; min-width:120px; text-align:left;">Gr.${groupNum} (${venueName})</span>
         <input type="text" class="player-name-input" data-player-id="${i}" value="${escapeHtml(p.name)}" placeholder="Jugador ${i}" ${disabledAttr} style="flex:1; background:transparent; border:none; color:#fff; font-family:'Outfit',sans-serif; font-size:0.95rem; font-weight:700; outline:none;">
-        <span style="font-size:0.75rem; color:var(--text-dim); white-space:nowrap;">Gr.${groupNum} (${venueName})</span>
       </div>
     `;
   }
@@ -1229,7 +1574,7 @@ function handleImportFile(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (imported && imported.groups && imported.players) {
-        tournamentState = imported;
+        tournamentState = migrateVenueAssignments(imported);
         await saveTournamentDataAsync(tournamentState);
         renderAllViews();
         showToast('✅ Torneo restaurado correctamente', 'success');

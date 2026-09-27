@@ -61,7 +61,7 @@
           </div>
           <div class="brand-text">
             <h1>🎱 TORNEO SNOOKER: <span class="gold-highlight">1ª Copa de España</span> 🎱</h1>
-            <div class="brand-date-subtitle">2-4 de Octubre de 2026</div>
+            <h2 class="brand-date-subtitle">2-4 de Octubre de 2026</h2>
             <div class="brand-subtitle">
               <span>Gestión Oficial de Resultados, Horarios y Breaks</span>
               <span class="venue-tag">📍 Vallecas (BBM)</span>
@@ -137,10 +137,10 @@
           <!-- Selector de Sede -->
           <div class="venue-segmented-control">
             <button type="button" class="venue-pill-btn active" data-venue="vallecas">
-              📍 Vallecas (Grupos 1-4)
+              📍 Vallecas (Grupos 1, 4, 5 y 8)
             </button>
             <button type="button" class="venue-pill-btn" data-venue="alcobendas">
-              📍 Alcobendas (Grupos 5-8)
+              📍 Alcobendas (Grupos 2, 3, 6 y 7)
             </button>
           </div>
         </div>
@@ -152,11 +152,19 @@
           <div class="filter-control-wrap">
             <label for="filter-matches-group">Grupo</label>
             <select class="filter-select" id="filter-matches-group">
-              <option value="all">Todos los Grupos (1 al 4)</option>
+              <option value="all">Todos los Grupos (1, 4, 5, 8)</option>
               <option value="1">Grupo 1</option>
-              <option value="2">Grupo 2</option>
-              <option value="3">Grupo 3</option>
               <option value="4">Grupo 4</option>
+              <option value="5">Grupo 5</option>
+              <option value="8">Grupo 8</option>
+            </select>
+          </div>
+
+          <!-- Filtro Jugador -->
+          <div class="filter-control-wrap">
+            <label for="filter-matches-player">Jugador</label>
+            <select class="filter-select" id="filter-matches-player">
+              <option value="all">Todos los Jugadores</option>
             </select>
           </div>
 
@@ -237,23 +245,26 @@
           <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
             <div class="venue-segmented-control">
               <button type="button" class="venue-pill-btn active" data-venue="vallecas">
-                📍 Vallecas (Grupos 1-4)
+                📍 Vallecas (Grupos 1, 4, 5 y 8)
               </button>
               <button type="button" class="venue-pill-btn" data-venue="alcobendas">
-                📍 Alcobendas (Grupos 5-8)
+                📍 Alcobendas (Grupos 2, 3, 6 y 7)
               </button>
             </div>
 
             <select class="filter-select" id="filter-group-standings" aria-label="Filtrar grupos en clasificación">
-              <option value="all">Todos los Grupos (1 al 4)</option>
+              <option value="all">Todos los Grupos (1, 4, 5, 8)</option>
               <option value="1">Grupo 1</option>
-              <option value="2">Grupo 2</option>
-              <option value="3">Grupo 3</option>
               <option value="4">Grupo 4</option>
+              <option value="5">Grupo 5</option>
+              <option value="8">Grupo 8</option>
             </select>
           </div>
         </div>
       </div>
+
+      <!-- Imagen del club de la sede seleccionada -->
+      <img src="IMG/vallecas.jpg" alt="Sede Vallecas - Black Ball Madrid" class="venue-banner-image" id="groups-venue-banner">
 
       <div class="info-notice">
         <span>⭐</span>
@@ -283,10 +294,10 @@
 
           <div class="venue-segmented-control">
             <button type="button" class="venue-pill-btn active" data-venue="vallecas">
-              📍 Vallecas (Grupos 1-4)
+              📍 Vallecas (Grupos 1, 4, 5 y 8)
             </button>
             <button type="button" class="venue-pill-btn" data-venue="alcobendas">
-              📍 Alcobendas (Grupos 5-8)
+              📍 Alcobendas (Grupos 2, 3, 6 y 7)
             </button>
           </div>
         </div>
@@ -313,6 +324,14 @@
           <div class="toolbar-title">
             <span>👑</span>
             <span>Cuadro de Fase Final (Octavos a Gran Final)</span>
+            <img src="IMG/final.jpg" alt="Clubes Fase Final" class="toolbar-title-image">
+          </div>
+
+          <div class="filter-control-wrap" style="min-width:220px;">
+            <label for="filter-playoffs-player">Jugador</label>
+            <select class="filter-select" id="filter-playoffs-player">
+              <option value="all">Todos los Jugadores</option>
+            </select>
           </div>
         </div>
       </div>
@@ -328,6 +347,17 @@
 
       <div id="playoffs-container">
         <!-- Renderizado dinámicamente -->
+      </div>
+
+      <!-- Panel Top 3 Breaks del Torneo (Grupos + Fase Final) -->
+      <div class="top-breaks-panel">
+        <div class="top-breaks-header">
+          <span>🔥</span>
+          <span>Top 3 Breaks del Torneo (Grupos y Fase Final)</span>
+        </div>
+        <div class="top-breaks-podium" id="top-breaks-podium">
+          <!-- Renderizado dinámicamente -->
+        </div>
       </div>
     </section>
 
