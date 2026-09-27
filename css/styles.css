@@ -199,7 +199,9 @@ body {
 .brand-section {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
   flex-wrap: wrap;
   gap: 1rem;
 }
@@ -238,6 +240,7 @@ body {
   text-transform: uppercase;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
@@ -247,7 +250,7 @@ body {
   text-shadow: 0 0 14px rgba(241, 184, 52, 0.45);
 }
 
-/* Date subtitle below tournament title */
+/* Date subtitle below tournament title (segundo encabezado) */
 .brand-date-subtitle {
   font-size: 1.05rem;
   font-weight: 800;
@@ -263,6 +266,7 @@ body {
   color: var(--text-muted);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   margin-top: 0.2rem;
   flex-wrap: wrap;
@@ -290,8 +294,29 @@ body {
   border: 1.5px solid var(--border-gold);
   border-radius: var(--radius-lg);
   padding: 1.25rem 1.5rem;
-  margin-bottom: 1.75rem;
+  margin-top: 1.75rem;
   box-shadow: 0 0 30px rgba(241,184,52,0.12);
+}
+
+/* Imagen de sede (Grupos) - banner ancho por Vallecas / Alcobendas */
+.venue-banner-image {
+  display: block;
+  width: 100%;
+  max-height: 170px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-gold);
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Imagen junto al título de la Fase Final */
+.toolbar-title-image {
+  height: 34px;
+  width: auto;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  object-fit: cover;
 }
 
 .top-breaks-header {
@@ -419,6 +444,25 @@ body {
 .bracket-break-input:focus {
   border-color: var(--gold);
   box-shadow: 0 0 6px var(--gold-glow);
+}
+
+.bracket-break-input-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.bracket-break-player-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 
@@ -991,6 +1035,27 @@ body {
   box-shadow: 0 0 8px var(--gold-glow);
 }
 
+/* Edición de día y hora del partido (solo Admin) */
+.schedule-edit-day,
+.schedule-edit-time {
+  background: var(--bg-input);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-light);
+  border-radius: 4px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.schedule-edit-day:focus,
+.schedule-edit-time:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 6px var(--gold-glow);
+}
+
 /* Frame Inputs */
 .match-frames-inputs-wrap {
   display: flex;
@@ -1279,6 +1344,32 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
+.bracket-schedule-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.bracket-schedule-day,
+.bracket-schedule-time {
+  background: var(--bg-input);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-light);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.2rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.bracket-schedule-day:focus,
+.bracket-schedule-time:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 5px var(--gold-glow);
+}
+
 .bracket-participant-row {
   display: flex;
   align-items: center;
@@ -1454,7 +1545,7 @@ body {
   }
   .brand-section {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
   }
   .player-name-display {
     font-size: 1.15rem;

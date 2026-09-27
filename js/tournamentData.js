@@ -16,96 +16,100 @@ const STORAGE_KEY = 'SNOOKER_TOURNAMENT_BLACKPOOL_MADRID_V3';
 // Contraseñas de administración aceptadas (blackpool123 solicitada)
 const ADMIN_PASSWORDS = ['blackpool123', 'blackpoolmadrid123'];
 
+// Sede Vallecas (Black Ball Madrid): Grupos 1, 4, 5 y 8
+// Sede Alcobendas (Club Snooker Valdelasfuentes): Grupos 2, 3, 6 y 7
 const VENUES = {
   VALLECAS: {
     id: 'vallecas',
-    name: 'Sede Vallecas (VF)',
+    name: 'Sede Vallecas (Black Ball Madrid)',
     shortName: 'Vallecas',
-    groupIndices: [1, 2, 3, 4],
+    groupIndices: [1, 4, 5, 8],
     tables: ['Mesa 1', 'Mesa 2', 'Mesa 3']
   },
   ALCOBENDAS: {
     id: 'alcobendas',
-    name: 'Sede Alcobendas (BBM)',
+    name: 'Sede Alcobendas (Club Snooker Valdelasfuentes)',
     shortName: 'Alcobendas',
-    groupIndices: [5, 6, 7, 8],
+    groupIndices: [2, 3, 6, 7],
     tables: ['Mesa 1', 'Mesa 2', 'Mesa 3']
   }
 };
 
 /**
- * Horarios oficiales calculados para asegurar 1-2 partidos de descanso entre partidos de un jugador
+ * Horarios oficiales calculados para asegurar 1-2 partidos de descanso entre partidos de un jugador.
+ * "slot" = posición (1º, 2º, 3º o 4º grupo) que ese grupo ocupa dentro de su sede,
+ * independiente del número absoluto de grupo que le haya tocado.
  */
 const DEFAULT_SCHEDULE_VALLECAS = [
   // Viernes
-  { matchIdx: 0, group: 1, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 1' },
-  { matchIdx: 1, group: 1, matchNum: 2, day: 'Viernes', time: '12:00', table: 'Mesa 2' },
-  { matchIdx: 2, group: 2, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 3' },
+  { matchIdx: 0, slot: 1, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 1' },
+  { matchIdx: 1, slot: 1, matchNum: 2, day: 'Viernes', time: '12:00', table: 'Mesa 2' },
+  { matchIdx: 2, slot: 2, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 3' },
   
-  { matchIdx: 3, group: 2, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 1' },
-  { matchIdx: 4, group: 3, matchNum: 1, day: 'Viernes', time: '14:00', table: 'Mesa 2' },
-  { matchIdx: 5, group: 3, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 3' },
+  { matchIdx: 3, slot: 2, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 1' },
+  { matchIdx: 4, slot: 3, matchNum: 1, day: 'Viernes', time: '14:00', table: 'Mesa 2' },
+  { matchIdx: 5, slot: 3, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 3' },
   
-  { matchIdx: 6, group: 4, matchNum: 1, day: 'Viernes', time: '16:00', table: 'Mesa 1' },
-  { matchIdx: 7, group: 4, matchNum: 2, day: 'Viernes', time: '16:00', table: 'Mesa 2' },
-  { matchIdx: 8, group: 1, matchNum: 3, day: 'Viernes', time: '16:00', table: 'Mesa 3' },
+  { matchIdx: 6, slot: 4, matchNum: 1, day: 'Viernes', time: '16:00', table: 'Mesa 1' },
+  { matchIdx: 7, slot: 4, matchNum: 2, day: 'Viernes', time: '16:00', table: 'Mesa 2' },
+  { matchIdx: 8, slot: 1, matchNum: 3, day: 'Viernes', time: '16:00', table: 'Mesa 3' },
   
-  { matchIdx: 9, group: 1, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 1' },
-  { matchIdx: 10, group: 2, matchNum: 3, day: 'Viernes', time: '18:00', table: 'Mesa 2' },
-  { matchIdx: 11, group: 2, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 3' },
+  { matchIdx: 9, slot: 1, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 1' },
+  { matchIdx: 10, slot: 2, matchNum: 3, day: 'Viernes', time: '18:00', table: 'Mesa 2' },
+  { matchIdx: 11, slot: 2, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 3' },
   
-  { matchIdx: 12, group: 3, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 1' },
-  { matchIdx: 13, group: 3, matchNum: 4, day: 'Viernes', time: '20:00', table: 'Mesa 2' },
-  { matchIdx: 14, group: 4, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 3' },
+  { matchIdx: 12, slot: 3, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 1' },
+  { matchIdx: 13, slot: 3, matchNum: 4, day: 'Viernes', time: '20:00', table: 'Mesa 2' },
+  { matchIdx: 14, slot: 4, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 3' },
   
   // Sábado
-  { matchIdx: 15, group: 4, matchNum: 4, day: 'Sábado', time: '09:00', table: 'Mesa 1' },
-  { matchIdx: 16, group: 1, matchNum: 5, day: 'Sábado', time: '09:00', table: 'Mesa 2' },
-  { matchIdx: 17, group: 1, matchNum: 6, day: 'Sábado', time: '09:00', table: 'Mesa 3' },
+  { matchIdx: 15, slot: 4, matchNum: 4, day: 'Sábado', time: '09:00', table: 'Mesa 1' },
+  { matchIdx: 16, slot: 1, matchNum: 5, day: 'Sábado', time: '09:00', table: 'Mesa 2' },
+  { matchIdx: 17, slot: 1, matchNum: 6, day: 'Sábado', time: '09:00', table: 'Mesa 3' },
   
-  { matchIdx: 18, group: 2, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 1' },
-  { matchIdx: 19, group: 2, matchNum: 6, day: 'Sábado', time: '11:00', table: 'Mesa 2' },
-  { matchIdx: 20, group: 3, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 3' },
+  { matchIdx: 18, slot: 2, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 1' },
+  { matchIdx: 19, slot: 2, matchNum: 6, day: 'Sábado', time: '11:00', table: 'Mesa 2' },
+  { matchIdx: 20, slot: 3, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 3' },
   
-  { matchIdx: 21, group: 3, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 1' },
-  { matchIdx: 22, group: 4, matchNum: 5, day: 'Sábado', time: '13:00', table: 'Mesa 2' },
-  { matchIdx: 23, group: 4, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 3' }
+  { matchIdx: 21, slot: 3, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 1' },
+  { matchIdx: 22, slot: 4, matchNum: 5, day: 'Sábado', time: '13:00', table: 'Mesa 2' },
+  { matchIdx: 23, slot: 4, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 3' }
 ];
 
 const DEFAULT_SCHEDULE_ALCOBENDAS = [
   // Viernes
-  { matchIdx: 0, group: 5, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 1' },
-  { matchIdx: 1, group: 5, matchNum: 2, day: 'Viernes', time: '12:00', table: 'Mesa 2' },
-  { matchIdx: 2, group: 6, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 3' },
+  { matchIdx: 0, slot: 1, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 1' },
+  { matchIdx: 1, slot: 1, matchNum: 2, day: 'Viernes', time: '12:00', table: 'Mesa 2' },
+  { matchIdx: 2, slot: 2, matchNum: 1, day: 'Viernes', time: '12:00', table: 'Mesa 3' },
   
-  { matchIdx: 3, group: 6, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 1' },
-  { matchIdx: 4, group: 7, matchNum: 1, day: 'Viernes', time: '14:00', table: 'Mesa 2' },
-  { matchIdx: 5, group: 7, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 3' },
+  { matchIdx: 3, slot: 2, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 1' },
+  { matchIdx: 4, slot: 3, matchNum: 1, day: 'Viernes', time: '14:00', table: 'Mesa 2' },
+  { matchIdx: 5, slot: 3, matchNum: 2, day: 'Viernes', time: '14:00', table: 'Mesa 3' },
   
-  { matchIdx: 6, group: 8, matchNum: 1, day: 'Viernes', time: '16:00', table: 'Mesa 1' },
-  { matchIdx: 7, group: 8, matchNum: 2, day: 'Viernes', time: '16:00', table: 'Mesa 2' },
-  { matchIdx: 8, group: 5, matchNum: 3, day: 'Viernes', time: '16:00', table: 'Mesa 3' },
+  { matchIdx: 6, slot: 4, matchNum: 1, day: 'Viernes', time: '16:00', table: 'Mesa 1' },
+  { matchIdx: 7, slot: 4, matchNum: 2, day: 'Viernes', time: '16:00', table: 'Mesa 2' },
+  { matchIdx: 8, slot: 1, matchNum: 3, day: 'Viernes', time: '16:00', table: 'Mesa 3' },
   
-  { matchIdx: 9, group: 5, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 1' },
-  { matchIdx: 10, group: 6, matchNum: 3, day: 'Viernes', time: '18:00', table: 'Mesa 2' },
-  { matchIdx: 11, group: 6, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 3' },
+  { matchIdx: 9, slot: 1, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 1' },
+  { matchIdx: 10, slot: 2, matchNum: 3, day: 'Viernes', time: '18:00', table: 'Mesa 2' },
+  { matchIdx: 11, slot: 2, matchNum: 4, day: 'Viernes', time: '18:00', table: 'Mesa 3' },
   
-  { matchIdx: 12, group: 7, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 1' },
-  { matchIdx: 13, group: 7, matchNum: 4, day: 'Viernes', time: '20:00', table: 'Mesa 2' },
-  { matchIdx: 14, group: 8, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 3' },
+  { matchIdx: 12, slot: 3, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 1' },
+  { matchIdx: 13, slot: 3, matchNum: 4, day: 'Viernes', time: '20:00', table: 'Mesa 2' },
+  { matchIdx: 14, slot: 4, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 3' },
   
   // Sábado
-  { matchIdx: 15, group: 8, matchNum: 4, day: 'Sábado', time: '09:00', table: 'Mesa 1' },
-  { matchIdx: 16, group: 5, matchNum: 5, day: 'Sábado', time: '09:00', table: 'Mesa 2' },
-  { matchIdx: 17, group: 5, matchNum: 6, day: 'Sábado', time: '09:00', table: 'Mesa 3' },
+  { matchIdx: 15, slot: 4, matchNum: 4, day: 'Sábado', time: '09:00', table: 'Mesa 1' },
+  { matchIdx: 16, slot: 1, matchNum: 5, day: 'Sábado', time: '09:00', table: 'Mesa 2' },
+  { matchIdx: 17, slot: 1, matchNum: 6, day: 'Sábado', time: '09:00', table: 'Mesa 3' },
   
-  { matchIdx: 18, group: 6, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 1' },
-  { matchIdx: 19, group: 6, matchNum: 6, day: 'Sábado', time: '11:00', table: 'Mesa 2' },
-  { matchIdx: 20, group: 7, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 3' },
+  { matchIdx: 18, slot: 2, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 1' },
+  { matchIdx: 19, slot: 2, matchNum: 6, day: 'Sábado', time: '11:00', table: 'Mesa 2' },
+  { matchIdx: 20, slot: 3, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 3' },
   
-  { matchIdx: 21, group: 7, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 1' },
-  { matchIdx: 22, group: 8, matchNum: 5, day: 'Sábado', time: '13:00', table: 'Mesa 2' },
-  { matchIdx: 23, group: 8, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 3' }
+  { matchIdx: 21, slot: 3, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 1' },
+  { matchIdx: 22, slot: 4, matchNum: 5, day: 'Sábado', time: '13:00', table: 'Mesa 2' },
+  { matchIdx: 23, slot: 4, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 3' }
 ];
 
 /**
@@ -125,8 +129,13 @@ function createDefaultTournamentState() {
   }
 
   for (let g = 1; g <= 8; g++) {
-    const venue = g <= 4 ? 'vallecas' : 'alcobendas';
-    const venueName = g <= 4 ? 'Vallecas' : 'Alcobendas';
+    const isVallecas = VENUES.VALLECAS.groupIndices.includes(g);
+    const venue = isVallecas ? VENUES.VALLECAS.id : VENUES.ALCOBENDAS.id;
+    const venueName = isVallecas ? VENUES.VALLECAS.shortName : VENUES.ALCOBENDAS.shortName;
+    const slot = isVallecas
+      ? VENUES.VALLECAS.groupIndices.indexOf(g) + 1
+      : VENUES.ALCOBENDAS.groupIndices.indexOf(g) + 1;
+
     const startPlayerId = (g - 1) * 4 + 1;
     const playerIds = [startPlayerId, startPlayerId + 1, startPlayerId + 2, startPlayerId + 3];
 
@@ -140,11 +149,11 @@ function createDefaultTournamentState() {
       [playerIds[1], playerIds[2]]
     ];
 
-    const schedList = g <= 4 ? DEFAULT_SCHEDULE_VALLECAS : DEFAULT_SCHEDULE_ALCOBENDAS;
+    const schedList = isVallecas ? DEFAULT_SCHEDULE_VALLECAS : DEFAULT_SCHEDULE_ALCOBENDAS;
 
     const matches = pairings.map((pair, index) => {
       const matchNum = index + 1;
-      const sched = schedList.find(s => s.group === g && s.matchNum === matchNum) || {
+      const sched = schedList.find(s => s.slot === slot && s.matchNum === matchNum) || {
         day: 'Viernes',
         time: '12:00',
         table: 'Mesa 1'
@@ -211,7 +220,7 @@ function createDefaultTournamentState() {
     final: {
       id: 'FINAL',
       matchNum: 1,
-      label: 'GRAN FINAL SNOOKER BLACKPOOL',
+      label: 'FINAL CAMPEONATO DE ESPAÑA',
       roundName: 'Gran Final',
       p1SourceMatch: 'SF_1',
       p2SourceMatch: 'SF_2',
@@ -244,6 +253,38 @@ function createDefaultTournamentState() {
 }
 
 /**
+ * Corrige la sede (venue/venueName) de cada grupo y de sus partidos según el
+ * mapeo vigente de sedes, sin tocar resultados, frames, breaks u horarios ya
+ * introducidos. Necesario porque un torneo ya guardado (local o en Supabase)
+ * puede tener grupos asignados con el mapeo de sedes anterior.
+ */
+function migrateVenueAssignments(state) {
+  if (!state || !state.groups) return state;
+
+  for (let g = 1; g <= 8; g++) {
+    const group = state.groups[g];
+    if (!group) continue;
+
+    const isVallecas = VENUES.VALLECAS.groupIndices.includes(g);
+    const correctVenue = isVallecas ? VENUES.VALLECAS.id : VENUES.ALCOBENDAS.id;
+    const correctVenueName = isVallecas ? VENUES.VALLECAS.shortName : VENUES.ALCOBENDAS.shortName;
+
+    if (group.venue !== correctVenue || group.venueName !== correctVenueName) {
+      group.venue = correctVenue;
+      group.venueName = correctVenueName;
+      if (Array.isArray(group.matches)) {
+        group.matches.forEach(m => {
+          m.venue = correctVenue;
+          m.venueName = correctVenueName;
+        });
+      }
+    }
+  }
+
+  return state;
+}
+
+/**
  * Carga el estado del torneo desde Supabase con diagnóstico detallado
  */
 async function loadTournamentDataAsync() {
@@ -265,7 +306,7 @@ async function loadTournamentDataAsync() {
       const data = await res.json();
       if (data && data.length > 0 && data[0].state) {
         // ✅ Datos remotos encontrados: usar siempre los remotos (fuente de verdad)
-        const remoteState = data[0].state;
+        const remoteState = migrateVenueAssignments(data[0].state);
         saveTournamentDataLocal(remoteState);
         return { success: true, isTableMissing: false, state: remoteState };
       } else {
@@ -346,7 +387,7 @@ function loadTournamentDataLocal() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.groups && parsed.players) {
-        return parsed;
+        return migrateVenueAssignments(parsed);
       }
     }
   } catch (e) {
