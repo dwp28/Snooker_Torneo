@@ -302,7 +302,7 @@ body {
 .venue-banner-image {
   display: block;
   width: 100%;
-  max-height: 170px;
+  max-height: 180px;
   object-fit: cover;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-gold);
