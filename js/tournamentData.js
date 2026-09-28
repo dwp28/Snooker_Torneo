@@ -197,6 +197,7 @@ function createDefaultTournamentState() {
 
   // FASE FINAL: Octavos -> Cuartos -> Semis -> Final
   const playoffs = {
+    drawMode: 'manual', // Los cruces se asignan a mano por el admin (sorteo)
     octavos: [
       { id: 'OCT_1', matchNum: 1, label: 'Octavos 1', roundName: 'Octavos de Final', p1Source: { group: 1, pos: 1 }, p2Source: { group: 2, pos: 2 }, player1Id: null, player2Id: null, day: 'Sábado', time: '15:00', table: 'Mesa 1', venue: 'vallecas', venueName: 'Vallecas', p1HighestBreak: null, p2HighestBreak: null, frames: [{p1Points: null, p2Points: null}, {p1Points: null, p2Points: null}, {p1Points: null, p2Points: null}], p1FramesWon: 0, p2FramesWon: 0, winnerId: null, status: 'pending', isCompleted: false },
       { id: 'OCT_2', matchNum: 2, label: 'Octavos 2', roundName: 'Octavos de Final', p1Source: { group: 2, pos: 1 }, p2Source: { group: 1, pos: 2 }, player1Id: null, player2Id: null, day: 'Sábado', time: '15:00', table: 'Mesa 2', venue: 'vallecas', venueName: 'Vallecas', p1HighestBreak: null, p2HighestBreak: null, frames: [{p1Points: null, p2Points: null}, {p1Points: null, p2Points: null}, {p1Points: null, p2Points: null}], p1FramesWon: 0, p2FramesWon: 0, winnerId: null, status: 'pending', isCompleted: false },
@@ -281,6 +282,52 @@ function migrateVenueAssignments(state) {
     }
   }
 
+  // Corrige el rótulo de la Gran Final si el torneo ya estaba guardado con el texto antiguo
+  if (state.playoffs && state.playoffs.final && state.playoffs.final.label !== 'FINAL CAMPEONATO DE ESPAÑA') {
+    state.playoffs.final.label = 'FINAL CAMPEONATO DE ESPAÑA';
+  }
+
+  return state;
+}
+
+/**
+ * Las eliminatorias pasan a definirse por sorteo (asignación manual del admin).
+ * Una sola vez, limpia los cruces que se habían autocompletado desde la clasificación
+ * de grupos (y cualquier resultado asociado a ellos). Conserva día, hora, mesa y enlace.
+ */
+function migratePlayoffsToManualDraw(state) {
+  if (!state || !state.playoffs || state.playoffs.drawMode === 'manual') return state;
+
+  const po = state.playoffs;
+  const allMatches = [
+    ...(po.octavos || []),
+    ...(po.cuartos || []),
+    ...(po.semifinales || []),
+    ...(po.final ? [po.final] : [])
+  ];
+
+  allMatches.forEach(m => {
+    m.player1Id = null;
+    m.player2Id = null;
+    m.p1FramesWon = 0;
+    m.p2FramesWon = 0;
+    m.p1HighestBreak = null;
+    m.p2HighestBreak = null;
+    m.winnerId = null;
+    m.isCompleted = false;
+    m.status = 'pending';
+  });
+
+  po.drawMode = 'manual';
+  return state;
+}
+
+/**
+ * Punto único de migración de un estado cargado (local, Supabase o backup importado)
+ */
+function applyStateMigrations(state) {
+  migrateVenueAssignments(state);
+  migratePlayoffsToManualDraw(state);
   return state;
 }
 
@@ -306,7 +353,7 @@ async function loadTournamentDataAsync() {
       const data = await res.json();
       if (data && data.length > 0 && data[0].state) {
         // ✅ Datos remotos encontrados: usar siempre los remotos (fuente de verdad)
-        const remoteState = migrateVenueAssignments(data[0].state);
+        const remoteState = applyStateMigrations(data[0].state);
         saveTournamentDataLocal(remoteState);
         return { success: true, isTableMissing: false, state: remoteState };
       } else {
@@ -387,7 +434,7 @@ function loadTournamentDataLocal() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.groups && parsed.players) {
-        return migrateVenueAssignments(parsed);
+        return applyStateMigrations(parsed);
       }
     }
   } catch (e) {
@@ -549,52 +596,19 @@ function getGroupStatus(group) {
 }
 
 /**
- * Actualiza los clasificados a Octavos de final
+ * Jugadores que han pasado de grupos (1º y 2º de cada grupo).
+ * Son los únicos que el administrador puede asignar manualmente al cuadro de eliminatorias.
  */
-function updatePlayoffQualifiers(state) {
-  if (!state.playoffs) return;
-
-  const groupStandings = {};
+function getQualifiedPlayers(state) {
+  const qualified = [];
   for (let g = 1; g <= 8; g++) {
-    groupStandings[g] = calculateGroupStandings(state.groups[g], state.players);
-  }
-
-  if (state.playoffs.octavos) {
-    state.playoffs.octavos.forEach(match => {
-      const p1Standings = groupStandings[match.p1Source.group];
-      const p2Standings = groupStandings[match.p2Source.group];
-
-      if (p1Standings && p1Standings[match.p1Source.pos - 1]) {
-        match.player1Id = p1Standings[match.p1Source.pos - 1].playerId;
-      }
-      if (p2Standings && p2Standings[match.p2Source.pos - 1]) {
-        match.player2Id = p2Standings[match.p2Source.pos - 1].playerId;
+    const group = state.groups[g];
+    if (!group) continue;
+    calculateGroupStandings(group, state.players).forEach(row => {
+      if (row.isQualified) {
+        qualified.push({ playerId: row.playerId, groupId: g, position: row.position });
       }
     });
   }
-
-  if (state.playoffs.cuartos) {
-    state.playoffs.cuartos.forEach(qf => {
-      const src1 = state.playoffs.octavos.find(m => m.id === qf.p1SourceMatch);
-      const src2 = state.playoffs.octavos.find(m => m.id === qf.p2SourceMatch);
-      qf.player1Id = (src1 && src1.winnerId) ? src1.winnerId : null;
-      qf.player2Id = (src2 && src2.winnerId) ? src2.winnerId : null;
-    });
-  }
-
-  if (state.playoffs.semifinales) {
-    state.playoffs.semifinales.forEach(sf => {
-      const src1 = state.playoffs.cuartos.find(m => m.id === sf.p1SourceMatch);
-      const src2 = state.playoffs.cuartos.find(m => m.id === sf.p2SourceMatch);
-      sf.player1Id = (src1 && src1.winnerId) ? src1.winnerId : null;
-      sf.player2Id = (src2 && src2.winnerId) ? src2.winnerId : null;
-    });
-  }
-
-  if (state.playoffs.final) {
-    const sf1 = state.playoffs.semifinales.find(m => m.id === state.playoffs.final.p1SourceMatch);
-    const sf2 = state.playoffs.semifinales.find(m => m.id === state.playoffs.final.p2SourceMatch);
-    state.playoffs.final.player1Id = (sf1 && sf1.winnerId) ? sf1.winnerId : null;
-    state.playoffs.final.player2Id = (sf2 && sf2.winnerId) ? sf2.winnerId : null;
-  }
+  return qualified;
 }

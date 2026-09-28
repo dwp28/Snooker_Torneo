@@ -302,7 +302,7 @@ body {
 .venue-banner-image {
   display: block;
   width: 100%;
-  max-height: 180px;
+  max-height: 150px;
   object-fit: cover;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-gold);
@@ -1535,9 +1535,149 @@ body {
   margin-top: auto;
 }
 
+/* ==========================================================================
+   ADMIN: MESA, JUGADORES DEL CUADRO Y ENLACE DE YOUTUBE
+   ========================================================================== */
+
+.table-edit-select,
+.bracket-table-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-green);
+  color: #7ef5bd;
+  border-radius: 4px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.1rem 0.3rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.table-edit-select:focus,
+.bracket-table-select:focus {
+  border-color: var(--snooker-green-light);
+  box-shadow: 0 0 6px var(--snooker-green-glow);
+}
+
+.bracket-node-table {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #7ef5bd;
+}
+
+.bracket-table-select {
+  font-size: 0.74rem;
+}
+
+.bracket-player-select {
+  flex: 1;
+  min-width: 0;
+  max-width: 170px;
+  margin-right: 0.4rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-gold);
+  color: #fff;
+  border-radius: 4px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.25rem 0.3rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.bracket-player-select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 6px var(--gold-glow);
+}
+
+/* Enlace de YouTube (partidos de grupos y eliminatorias) */
+.match-video-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.youtube-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fff;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.youtube-link-btn:hover {
+  background: rgba(239, 68, 68, 0.28);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.youtube-link-btn.is-empty {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.youtube-logo {
+  display: block;
+  height: 22px;
+  width: auto;
+  max-width: 90px;
+  object-fit: contain;
+}
+
+.youtube-url-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.youtube-url-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+.bracket-match-node .match-video-row {
+  margin-top: 0.15rem;
+}
+
+.bracket-match-node .youtube-url-input {
+  font-size: 0.72rem;
+  padding: 0.3rem 0.45rem;
+}
+
+.bracket-match-node .youtube-link-btn {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.bracket-match-node .youtube-logo {
+  height: 18px;
+}
+
+/* ==========================================================================
+   RESPONSIVE (MÓVIL)
+   ========================================================================== */
+
 @media (max-width: 768px) {
   .matches-list-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     padding: 0.85rem;
   }
   .standings-grid {
@@ -1547,8 +1687,73 @@ body {
     flex-direction: column;
     align-items: center;
   }
+
+  .match-card {
+    padding: 1rem;
+    min-width: 0;
+  }
+
+  .match-card-schedule-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .group-players-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.85rem;
+  }
+
+  /* Enfrentamiento: 3 columnas (jugador · VS · jugador) que nunca se salen del bloque.
+     Los nombres se parten en varias líneas y el marcador queda alineado abajo. */
+  .match-players-faceoff {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.65rem 0.6rem;
+  }
+
+  .player-side {
+    min-width: 0;
+    justify-content: space-between;
+    gap: 0.3rem;
+  }
+
   .player-name-display {
-    font-size: 1.15rem;
-    max-width: 130px;
+    font-size: 1.05rem;
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.18;
+  }
+
+  .player-frames-count {
+    font-size: 1.85rem;
+  }
+
+  .match-vs-divider {
+    padding: 0;
+    align-self: center;
+  }
+
+  .match-vs-divider span {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .match-card {
+    padding: 0.85rem;
+  }
+  .player-name-display {
+    font-size: 0.95rem;
+  }
+  .player-frames-count {
+    font-size: 1.6rem;
   }
 }

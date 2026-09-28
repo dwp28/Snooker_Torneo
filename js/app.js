@@ -17,6 +17,9 @@ let filterPlayerMatches = 'all';
 // Filtro por jugador en la Fase Final
 let filterPlayerPlayoffs = 'all';
 
+// Jugadores clasificados de grupos (1º y 2º): únicos seleccionables en el sorteo del cuadro
+let playoffQualifiedPool = [];
+
 let isAdminAuthenticated = false;
 let autoSyncInterval = null;
 let isSupabaseTableMissing = false;
@@ -491,7 +494,6 @@ function setupEventListeners() {
 }
 
 function renderAllViews() {
-  updatePlayoffQualifiers(tournamentState);
   renderMatchesView();
   renderStandingsView();
   renderFramesView();
@@ -501,7 +503,6 @@ function renderAllViews() {
 }
 
 function renderCurrentView() {
-  updatePlayoffQualifiers(tournamentState);
   if (currentTab === 'matches') renderMatchesView();
   else if (currentTab === 'groups') renderStandingsView();
   else if (currentTab === 'frames') renderFramesView();
@@ -695,6 +696,10 @@ function renderSingleMatchCard(match, group) {
     <span>${escapeHtml(match.day || 'Viernes')} · ${escapeHtml(match.time || '12:00')}</span>
   `;
 
+  const tableControl = isAdminAuthenticated
+    ? `<select class="table-edit-select" data-match="${match.id}" title="Cambiar mesa">${buildTableOptions(match.table)}</select>`
+    : escapeHtml(match.table || 'Mesa 1');
+
   return `
     <div class="match-card ${cardClass}" id="card-${match.id}" data-match-id="${match.id}">
       
@@ -705,7 +710,7 @@ function renderSingleMatchCard(match, group) {
           ${scheduleControls}
         </div>
         <div style="display:flex; align-items:center; gap:0.5rem;">
-          <span class="table-badge-highlight">${escapeHtml(match.table || 'Mesa 1')} · ${escapeHtml(match.venueName || 'Vallecas')}</span>
+          <span class="table-badge-highlight">${tableControl} · ${escapeHtml(match.venueName || 'Vallecas')}</span>
           <span class="match-status-badge ${statusClass}">${statusText}</span>
         </div>
       </div>
@@ -775,6 +780,8 @@ function renderSingleMatchCard(match, group) {
         }).join('')}
       </div>
 
+      ${buildYoutubeSection(match.youtubeUrl, `data-match="${match.id}"`)}
+
       ${isAdminAuthenticated ? `
         <div class="match-card-actions">
           <button type="button" class="btn-clear-match" data-match="${match.id}" title="Limpiar resultado">
@@ -828,6 +835,18 @@ function attachMatchInputListeners() {
     });
   });
 
+  document.querySelectorAll('.table-edit-select').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      handleTableChange(e.target.getAttribute('data-match'), e.target.value);
+    });
+  });
+
+  document.querySelectorAll('.youtube-url-input[data-match]').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      handleYoutubeChange(e.target.getAttribute('data-match'), e.target.value, e.target);
+    });
+  });
+
   document.querySelectorAll('.btn-clear-match').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const matchId = btn.getAttribute('data-match');
@@ -873,6 +892,33 @@ function handleScheduleChange(matchId, field, value) {
 
   saveTournamentDataAsync(tournamentState);
   showToast('🕒 Horario del partido actualizado', 'success');
+}
+
+function handleTableChange(matchId, value) {
+  const match = findMatchById(matchId);
+  if (!match) return;
+
+  match.table = value;
+  saveTournamentDataAsync(tournamentState);
+  showToast('🎱 Mesa del partido actualizada', 'success');
+}
+
+function handleYoutubeChange(matchId, rawValue, inputEl) {
+  const match = findMatchById(matchId);
+  if (!match) return;
+
+  const normalized = normalizeYoutubeUrl(rawValue);
+  if (normalized === false) {
+    showToast('⚠️ Enlace no válido: usa un enlace de youtube.com o youtu.be', 'warning');
+    inputEl.value = match.youtubeUrl || '';
+    return;
+  }
+
+  match.youtubeUrl = normalized;
+  inputEl.value = normalized || '';
+  updateYoutubeAnchor(inputEl, normalized);
+  saveTournamentDataAsync(tournamentState);
+  showToast(normalized ? '▶️ Enlace de YouTube guardado' : '🗑️ Enlace de YouTube eliminado', 'success');
 }
 
 function handleFrameScoreChange(matchId, frameIdx, playerKey, value) {
@@ -1160,8 +1206,14 @@ function renderPlayoffsView() {
   const container = document.getElementById('playoffs-container');
   if (!container) return;
 
-  updatePlayoffQualifiers(tournamentState);
   updatePlayoffsPlayerFilterOptions();
+
+  playoffQualifiedPool = getQualifiedPlayers(tournamentState).sort((a, b) => {
+    const nameA = (tournamentState.players[a.playerId] && tournamentState.players[a.playerId].name) || '';
+    const nameB = (tournamentState.players[b.playerId] && tournamentState.players[b.playerId].name) || '';
+    return nameA.localeCompare(nameB, 'es');
+  });
+
   const po = tournamentState.playoffs;
 
   const octavosFiltered = po.octavos.filter(playoffMatchPassesPlayerFilter);
@@ -1227,6 +1279,7 @@ function renderPlayoffsView() {
   attachPlayoffScoreListeners();
   attachPlayoffBreakListeners();
   attachPlayoffScheduleListeners();
+  attachPlayoffMetaListeners();
   renderTopBreaksPanel();
 }
 
@@ -1234,8 +1287,8 @@ function renderPlayoffNode(match, roundKey) {
   const p1 = match.player1Id ? tournamentState.players[match.player1Id] : null;
   const p2 = match.player2Id ? tournamentState.players[match.player2Id] : null;
 
-  const p1Name = p1 ? p1.name : (match.p1Source ? `${match.p1Source.pos}º Grupo ${match.p1Source.group}` : 'Por definir');
-  const p2Name = p2 ? p2.name : (match.p2Source ? `${match.p2Source.pos}º Grupo ${match.p2Source.group}` : 'Por definir');
+  const p1Name = p1 ? p1.name : 'Por definir';
+  const p2Name = p2 ? p2.name : 'Por definir';
 
   const p1Won = match.winnerId && match.player1Id && match.winnerId === match.player1Id;
   const p2Won = match.winnerId && match.player2Id && match.winnerId === match.player2Id;
@@ -1252,6 +1305,15 @@ function renderPlayoffNode(match, roundKey) {
     </span>
   ` : `<span class="bracket-node-schedule">${match.day || ''} ${match.time || ''}</span>`;
 
+  const tableControl = isAdminAuthenticated
+    ? `<select class="bracket-table-select" data-round="${roundKey}" data-playoff-id="${match.id}" title="Cambiar mesa">${buildTableOptions(match.table)}</select>`
+    : `<span>${escapeHtml(match.table || 'Mesa 1')}</span>`;
+
+  // Admin: selector de jugador (solo clasificados de grupos). Público: nombre.
+  const participantCell = (slot, name, won) => isAdminAuthenticated
+    ? `${won ? '<span>🏆</span>' : ''}<select class="bracket-player-select" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="${slot}" title="Asignar jugador">${buildPlayoffPlayerOptions(match, roundKey, slot)}</select>`
+    : `<span class="bracket-participant-name" title="${escapeHtml(name)}">${won ? '🏆 ' : ''}${escapeHtml(name)}</span>`;
+
   return `
     <div class="bracket-match-node" data-round="${roundKey}" data-playoff-id="${match.id}">
       <div class="bracket-node-header">
@@ -1259,14 +1321,19 @@ function renderPlayoffNode(match, roundKey) {
         ${scheduleControls}
       </div>
 
+      <div class="bracket-node-table">
+        <span>🎱</span>
+        ${tableControl}
+      </div>
+
       <div class="bracket-participant-row ${p1Won ? 'is-winner' : ''}">
-        <span class="bracket-participant-name" title="${escapeHtml(p1Name)}">${p1Won ? '🏆 ' : ''}${escapeHtml(p1Name)}</span>
+        ${participantCell('p1', p1Name, p1Won)}
         <input type="number" min="0" max="3" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p1" 
                value="${match.p1FramesWon || 0}" ${disabledAttr}>
       </div>
 
       <div class="bracket-participant-row ${p2Won ? 'is-winner' : ''}">
-        <span class="bracket-participant-name" title="${escapeHtml(p2Name)}">${p2Won ? '🏆 ' : ''}${escapeHtml(p2Name)}</span>
+        ${participantCell('p2', p2Name, p2Won)}
         <input type="number" min="0" max="3" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p2" 
                value="${match.p2FramesWon || 0}" ${disabledAttr}>
       </div>
@@ -1290,6 +1357,8 @@ function renderPlayoffNode(match, roundKey) {
           <span>🔥</span>
         </div>
       </div>
+
+      ${buildYoutubeSection(match.youtubeUrl, `data-round="${roundKey}" data-playoff-id="${match.id}"`)}
     </div>
   `;
 }
@@ -1396,6 +1465,131 @@ async function handlePlayoffScheduleUpdate(roundKey, playoffId, field, value) {
 
   await saveTournamentDataAsync(tournamentState);
   renderPlayoffsView();
+}
+
+/**
+ * Asignación manual (sorteo) de jugadores, mesa y enlace de YouTube en la Fase Final
+ */
+function getPlayoffRoundMatches(roundKey) {
+  const po = tournamentState.playoffs;
+  if (roundKey === 'final') return po.final ? [po.final] : [];
+  return po[roundKey] || [];
+}
+
+// IDs de jugadores ya asignados en la misma ronda (salvo el hueco que se está editando)
+function getUsedPlayerIdsInRound(roundKey, matchId, slot) {
+  const used = new Set();
+  getPlayoffRoundMatches(roundKey).forEach(m => {
+    if (!(m.id === matchId && slot === 'p1') && m.player1Id) used.add(m.player1Id);
+    if (!(m.id === matchId && slot === 'p2') && m.player2Id) used.add(m.player2Id);
+  });
+  return used;
+}
+
+function buildPlayoffPlayerOptions(match, roundKey, slot) {
+  const currentId = slot === 'p1' ? match.player1Id : match.player2Id;
+  const used = getUsedPlayerIdsInRound(roundKey, match.id, slot);
+  const poolIds = new Set(playoffQualifiedPool.map(q => q.playerId));
+  const nameOf = (id) => (tournamentState.players[id] && tournamentState.players[id].name) || `Jugador ${id}`;
+
+  let html = `<option value="">— Por definir —</option>`;
+  playoffQualifiedPool.forEach(q => {
+    if (used.has(q.playerId) && q.playerId !== currentId) return;
+    html += `<option value="${q.playerId}" ${q.playerId === currentId ? 'selected' : ''}>${escapeHtml(nameOf(q.playerId))} (${q.position}º Gr.${q.groupId})</option>`;
+  });
+
+  // Si el jugador asignado ya no figura entre los clasificados, se mantiene visible
+  if (currentId && !poolIds.has(currentId)) {
+    html += `<option value="${currentId}" selected>${escapeHtml(nameOf(currentId))} (fuera de clasificados)</option>`;
+  }
+  return html;
+}
+
+function recalcPlayoffWinner(match) {
+  if (match.p1FramesWon >= 2 && match.player1Id) {
+    match.winnerId = match.player1Id;
+    match.isCompleted = true;
+  } else if (match.p2FramesWon >= 2 && match.player2Id) {
+    match.winnerId = match.player2Id;
+    match.isCompleted = true;
+  } else {
+    match.winnerId = null;
+    match.isCompleted = false;
+  }
+}
+
+function attachPlayoffMetaListeners() {
+  document.querySelectorAll('.bracket-player-select').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      await handlePlayoffPlayerSelect(
+        e.target.getAttribute('data-round'),
+        e.target.getAttribute('data-playoff-id'),
+        e.target.getAttribute('data-player'),
+        e.target.value
+      );
+    });
+  });
+
+  document.querySelectorAll('.bracket-table-select').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      await handlePlayoffTableUpdate(
+        e.target.getAttribute('data-round'),
+        e.target.getAttribute('data-playoff-id'),
+        e.target.value
+      );
+    });
+  });
+
+  document.querySelectorAll('.youtube-url-input[data-playoff-id]').forEach(inp => {
+    inp.addEventListener('change', async (e) => {
+      await handlePlayoffYoutubeUpdate(
+        e.target.getAttribute('data-round'),
+        e.target.getAttribute('data-playoff-id'),
+        e.target.value,
+        e.target
+      );
+    });
+  });
+}
+
+async function handlePlayoffPlayerSelect(roundKey, playoffId, slot, value) {
+  const match = findPlayoffMatch(roundKey, playoffId);
+  if (!match) return;
+
+  const playerId = value === '' ? null : parseInt(value);
+  if (slot === 'p1') match.player1Id = playerId;
+  if (slot === 'p2') match.player2Id = playerId;
+
+  recalcPlayoffWinner(match);
+  await saveTournamentDataAsync(tournamentState);
+  renderPlayoffsView();
+}
+
+async function handlePlayoffTableUpdate(roundKey, playoffId, value) {
+  const match = findPlayoffMatch(roundKey, playoffId);
+  if (!match) return;
+
+  match.table = value;
+  await saveTournamentDataAsync(tournamentState);
+  showToast('🎱 Mesa del partido actualizada', 'success');
+}
+
+async function handlePlayoffYoutubeUpdate(roundKey, playoffId, rawValue, inputEl) {
+  const match = findPlayoffMatch(roundKey, playoffId);
+  if (!match) return;
+
+  const normalized = normalizeYoutubeUrl(rawValue);
+  if (normalized === false) {
+    showToast('⚠️ Enlace no válido: usa un enlace de youtube.com o youtu.be', 'warning');
+    inputEl.value = match.youtubeUrl || '';
+    return;
+  }
+
+  match.youtubeUrl = normalized;
+  inputEl.value = normalized || '';
+  updateYoutubeAnchor(inputEl, normalized);
+  await saveTournamentDataAsync(tournamentState);
+  showToast(normalized ? '▶️ Enlace de YouTube guardado' : '🗑️ Enlace de YouTube eliminado', 'success');
 }
 
 /**
@@ -1574,7 +1768,7 @@ function handleImportFile(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (imported && imported.groups && imported.players) {
-        tournamentState = migrateVenueAssignments(imported);
+        tournamentState = applyStateMigrations(imported);
         await saveTournamentDataAsync(tournamentState);
         renderAllViews();
         showToast('✅ Torneo restaurado correctamente', 'success');
@@ -1640,6 +1834,76 @@ function showToast(message, type = 'info') {
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 2800);
+}
+
+/**
+ * Opciones del selector de mesa (Mesa 1 a Mesa 3; conserva el valor actual si es otro, p.ej. "Mesa Principal")
+ */
+function buildTableOptions(currentTable) {
+  const tables = ['Mesa 1', 'Mesa 2', 'Mesa 3'];
+  const current = currentTable || 'Mesa 1';
+  const list = tables.includes(current) ? tables : [...tables, current];
+  return list.map(t => `<option value="${escapeHtml(t)}" ${t === current ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('');
+}
+
+/**
+ * Valida un enlace de YouTube. Devuelve la URL normalizada, null si está vacío o false si no es válido.
+ */
+function normalizeYoutubeUrl(raw) {
+  const value = (raw || '').trim();
+  if (value === '') return null;
+
+  const candidate = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  try {
+    const url = new URL(candidate);
+    const host = url.hostname.toLowerCase();
+    const isYoutube = host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com');
+    if ((url.protocol === 'https:' || url.protocol === 'http:') && isYoutube) {
+      return url.href;
+    }
+  } catch (e) {
+    // URL no válida
+  }
+  return false;
+}
+
+/**
+ * Bloque de YouTube de un partido: el admin ve un campo para pegar el enlace;
+ * el público solo ve el botón con el logo si hay enlace.
+ */
+function buildYoutubeSection(url, dataAttrs) {
+  const safeUrl = url ? escapeHtml(url) : '';
+  const logo = `<img class="youtube-logo" src="IMG/youtube.png" alt="YouTube">`;
+
+  if (isAdminAuthenticated) {
+    return `
+      <div class="match-video-row is-admin">
+        <a class="youtube-link-btn ${url ? '' : 'is-empty'}" ${url ? `href="${safeUrl}"` : ''} target="_blank" rel="noopener noreferrer" title="Abrir enlace de YouTube">${logo}</a>
+        <input type="url" class="youtube-url-input" ${dataAttrs} placeholder="Enlace de YouTube (opcional)" value="${safeUrl}">
+      </div>
+    `;
+  }
+
+  if (!url) return '';
+  return `
+    <div class="match-video-row">
+      <a class="youtube-link-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer">${logo}<span>Ver en YouTube</span></a>
+    </div>
+  `;
+}
+
+function updateYoutubeAnchor(inputEl, url) {
+  const row = inputEl.closest('.match-video-row');
+  const anchor = row ? row.querySelector('.youtube-link-btn') : null;
+  if (!anchor) return;
+
+  if (url) {
+    anchor.setAttribute('href', url);
+    anchor.classList.remove('is-empty');
+  } else {
+    anchor.removeAttribute('href');
+    anchor.classList.add('is-empty');
+  }
 }
 
 function escapeHtml(str) {
