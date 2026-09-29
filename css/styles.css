@@ -1710,6 +1710,21 @@ body {
     font-size: 1.5rem;
   }
 
+  /* Fase Final: en móvil, el texto arriba y la imagen de los clubes debajo, a ancho completo */
+  .toolbar-title-playoffs {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-title-playoffs .toolbar-title-image {
+    flex: 1 0 100%;
+    order: 3;
+    width: 100%;
+    height: auto;
+    max-height: 90px;
+    margin-top: 0.5rem;
+    object-fit: contain;
+  }
+
   .match-card {
     padding: 1rem;
     min-width: 0;
