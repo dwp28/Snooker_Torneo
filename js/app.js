@@ -1078,7 +1078,7 @@ function renderStandingsView() {
                 <th style="text-align: center;">FG</th>
                 <th style="text-align: center;">FP</th>
                 <th style="text-align: center;">Break Máx</th>
-                <th style="text-align: center;">Pts Totales ⭐</th>
+                <th style="text-align: center;">Pts Totales</th>
                 <th style="text-align: center;">Pases</th>
               </tr>
             </thead>

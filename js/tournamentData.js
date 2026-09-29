@@ -543,20 +543,23 @@ function calculateGroupStandings(group, players) {
   const standings = Object.values(stats);
 
   standings.sort((a, b) => {
+    // 1º Partidos Ganados
     if (b.matchesWon !== a.matchesWon) {
       return b.matchesWon - a.matchesWon;
     }
+    // 2º Frames Ganados
     if (b.framesWon !== a.framesWon) {
       return b.framesWon - a.framesWon;
     }
-    if (b.totalPoints !== a.totalPoints) {
-      return b.totalPoints - a.totalPoints;
+    // 3º Frames Perdidos (menos frames perdidos, mejor posición)
+    if (a.framesLost !== b.framesLost) {
+      return a.framesLost - b.framesLost;
     }
-    const diffA = a.framesWon - a.framesLost;
-    const diffB = b.framesWon - b.framesLost;
-    if (diffB !== diffA) {
-      return diffB - diffA;
+    // 4º Break Máximo conseguido
+    if (b.highestBreak !== a.highestBreak) {
+      return b.highestBreak - a.highestBreak;
     }
+    // 5º Enfrentamiento directo (último desempate posible)
     if (a.headToHead[b.playerId]) {
       return b.headToHead[a.playerId] || (a.headToHead[b.playerId] === 1 ? -1 : 1);
     }
