@@ -1241,7 +1241,7 @@ function renderPlayoffsView() {
         
         <!-- OCTAVOS DE FINAL (16 CLASIFICADOS - 8 PARTIDOS) -->
         <div class="bracket-round-column">
-          <div class="bracket-round-header">Octavos de Final (8 Partidos)</div>
+          <div class="bracket-round-header">Octavos de Final</div>
           <div class="bracket-matches-list">
             ${octavosFiltered.length > 0 ? octavosFiltered.map(m => renderPlayoffNode(m, 'octavos')).join('') : emptyRoundNotice}
           </div>
@@ -1249,7 +1249,7 @@ function renderPlayoffsView() {
 
         <!-- CUARTOS DE FINAL (4 PARTIDOS) -->
         <div class="bracket-round-column">
-          <div class="bracket-round-header">Cuartos de Final (4 Partidos)</div>
+          <div class="bracket-round-header">Cuartos de Final</div>
           <div class="bracket-matches-list">
             ${cuartosFiltered.length > 0 ? cuartosFiltered.map(m => renderPlayoffNode(m, 'cuartos')).join('') : emptyRoundNotice}
           </div>
@@ -1257,7 +1257,7 @@ function renderPlayoffsView() {
 
         <!-- SEMIFINALES (DOMINGO 09:00) -->
         <div class="bracket-round-column">
-          <div class="bracket-round-header">Semifinales (Domingo 09:00)</div>
+          <div class="bracket-round-header">Semifinales</div>
           <div class="bracket-matches-list">
             ${semisFiltered.length > 0 ? semisFiltered.map(m => renderPlayoffNode(m, 'semifinales')).join('') : emptyRoundNotice}
           </div>
@@ -1265,7 +1265,7 @@ function renderPlayoffsView() {
 
         <!-- GRAN FINAL (DOMINGO 13:00) -->
         <div class="bracket-round-column">
-          <div class="bracket-round-header">🏆 Gran Final (Domingo 13:00)</div>
+          <div class="bracket-round-header">🏆 Gran Final</div>
           <div class="bracket-matches-list">
             ${finalPasses ? renderPlayoffNode(po.final, 'final') : emptyRoundNotice}
           </div>
