@@ -553,6 +553,18 @@ function updateHeaderStats() {
  * VISTA 1: PARTIDOS (MATCHES VIEW) - FILTRADA Y REDISEÑADA
  * =========================================================================
  */
+// Orden cronologico por defecto dentro de cada grupo: Viernes -> Sabado -> Domingo, por hora ascendente
+const DAY_SORT_ORDER = { 'Viernes': 1, 'Sábado': 2, 'Domingo': 3 };
+
+function sortMatchesByDayTime(matches) {
+  return [...matches].sort((a, b) => {
+    const dayA = DAY_SORT_ORDER[a.day] || 99;
+    const dayB = DAY_SORT_ORDER[b.day] || 99;
+    if (dayA !== dayB) return dayA - dayB;
+    return (a.time || '').localeCompare(b.time || '');
+  });
+}
+
 function renderMatchesView() {
   const container = document.getElementById('matches-container');
   if (!container) return;
@@ -648,7 +660,7 @@ function renderMatchesView() {
         </div>
         
         <div class="matches-list-grid">
-          ${matches.map(m => renderSingleMatchCard(m, group)).join('')}
+          ${sortMatchesByDayTime(matches).map(m => renderSingleMatchCard(m, group)).join('')}
         </div>
       </div>
     `;

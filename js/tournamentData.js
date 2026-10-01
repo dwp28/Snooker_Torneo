@@ -63,17 +63,17 @@ const DEFAULT_SCHEDULE_VALLECAS = [
   { matchIdx: 14, slot: 4, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 3' },
   
   // Sábado
-  { matchIdx: 15, slot: 4, matchNum: 4, day: 'Sábado', time: '09:00', table: 'Mesa 1' },
-  { matchIdx: 16, slot: 1, matchNum: 5, day: 'Sábado', time: '09:00', table: 'Mesa 2' },
-  { matchIdx: 17, slot: 1, matchNum: 6, day: 'Sábado', time: '09:00', table: 'Mesa 3' },
+  { matchIdx: 15, slot: 4, matchNum: 4, day: 'Sábado', time: '09:30', table: 'Mesa 1' },
+  { matchIdx: 16, slot: 1, matchNum: 5, day: 'Sábado', time: '09:30', table: 'Mesa 2' },
+  { matchIdx: 17, slot: 1, matchNum: 6, day: 'Sábado', time: '09:30', table: 'Mesa 3' },
   
-  { matchIdx: 18, slot: 2, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 1' },
-  { matchIdx: 19, slot: 2, matchNum: 6, day: 'Sábado', time: '11:00', table: 'Mesa 2' },
-  { matchIdx: 20, slot: 3, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 3' },
+  { matchIdx: 18, slot: 2, matchNum: 5, day: 'Sábado', time: '11:30', table: 'Mesa 1' },
+  { matchIdx: 19, slot: 2, matchNum: 6, day: 'Sábado', time: '11:30', table: 'Mesa 2' },
+  { matchIdx: 20, slot: 3, matchNum: 5, day: 'Sábado', time: '11:30', table: 'Mesa 3' },
   
-  { matchIdx: 21, slot: 3, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 1' },
-  { matchIdx: 22, slot: 4, matchNum: 5, day: 'Sábado', time: '13:00', table: 'Mesa 2' },
-  { matchIdx: 23, slot: 4, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 3' }
+  { matchIdx: 21, slot: 3, matchNum: 6, day: 'Sábado', time: '13:30', table: 'Mesa 1' },
+  { matchIdx: 22, slot: 4, matchNum: 5, day: 'Sábado', time: '13:30', table: 'Mesa 2' },
+  { matchIdx: 23, slot: 4, matchNum: 6, day: 'Sábado', time: '13:30', table: 'Mesa 3' }
 ];
 
 const DEFAULT_SCHEDULE_ALCOBENDAS = [
@@ -99,17 +99,17 @@ const DEFAULT_SCHEDULE_ALCOBENDAS = [
   { matchIdx: 14, slot: 4, matchNum: 3, day: 'Viernes', time: '20:00', table: 'Mesa 3' },
   
   // Sábado
-  { matchIdx: 15, slot: 4, matchNum: 4, day: 'Sábado', time: '09:00', table: 'Mesa 1' },
-  { matchIdx: 16, slot: 1, matchNum: 5, day: 'Sábado', time: '09:00', table: 'Mesa 2' },
-  { matchIdx: 17, slot: 1, matchNum: 6, day: 'Sábado', time: '09:00', table: 'Mesa 3' },
+  { matchIdx: 15, slot: 4, matchNum: 4, day: 'Sábado', time: '09:30', table: 'Mesa 1' },
+  { matchIdx: 16, slot: 1, matchNum: 5, day: 'Sábado', time: '09:30', table: 'Mesa 2' },
+  { matchIdx: 17, slot: 1, matchNum: 6, day: 'Sábado', time: '09:30', table: 'Mesa 3' },
   
-  { matchIdx: 18, slot: 2, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 1' },
-  { matchIdx: 19, slot: 2, matchNum: 6, day: 'Sábado', time: '11:00', table: 'Mesa 2' },
-  { matchIdx: 20, slot: 3, matchNum: 5, day: 'Sábado', time: '11:00', table: 'Mesa 3' },
+  { matchIdx: 18, slot: 2, matchNum: 5, day: 'Sábado', time: '11:30', table: 'Mesa 1' },
+  { matchIdx: 19, slot: 2, matchNum: 6, day: 'Sábado', time: '11:30', table: 'Mesa 2' },
+  { matchIdx: 20, slot: 3, matchNum: 5, day: 'Sábado', time: '11:30', table: 'Mesa 3' },
   
-  { matchIdx: 21, slot: 3, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 1' },
-  { matchIdx: 22, slot: 4, matchNum: 5, day: 'Sábado', time: '13:00', table: 'Mesa 2' },
-  { matchIdx: 23, slot: 4, matchNum: 6, day: 'Sábado', time: '13:00', table: 'Mesa 3' }
+  { matchIdx: 21, slot: 3, matchNum: 6, day: 'Sábado', time: '13:30', table: 'Mesa 1' },
+  { matchIdx: 22, slot: 4, matchNum: 5, day: 'Sábado', time: '13:30', table: 'Mesa 2' },
+  { matchIdx: 23, slot: 4, matchNum: 6, day: 'Sábado', time: '13:30', table: 'Mesa 3' }
 ];
 
 /**
