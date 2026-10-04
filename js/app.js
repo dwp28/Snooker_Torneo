@@ -517,6 +517,7 @@ function updateHeaderStats() {
   let totalPoints = 0;
   let highestBreakTournament = 0;
 
+  // Fase de Grupos
   for (let g = 1; g <= 8; g++) {
     const group = tournamentState.groups[g];
     totalMatches += group.matches.length;
@@ -533,6 +534,29 @@ function updateHeaderStats() {
       });
     });
   }
+
+  // Fase Final (Octavos, Cuartos, Semis y Final)
+  const po = tournamentState.playoffs || {};
+  const playoffMatches = [
+    ...(po.octavos || []),
+    ...(po.cuartos || []),
+    ...(po.semifinales || []),
+    ...(po.final ? [po.final] : [])
+  ];
+  playoffMatches.forEach(m => {
+    if (!m.player1Id && !m.player2Id) return; // partido sin asignar
+    totalMatches++;
+    if (m.isCompleted || m.winnerId) completedMatches++;
+    if (m.p1HighestBreak) highestBreakTournament = Math.max(highestBreakTournament, Number(m.p1HighestBreak));
+    if (m.p2HighestBreak) highestBreakTournament = Math.max(highestBreakTournament, Number(m.p2HighestBreak));
+    // Puntos de frames de fase final (si los tienen guardados)
+    if (m.frames) {
+      m.frames.forEach(f => {
+        if (f.p1Points) totalPoints += Number(f.p1Points);
+        if (f.p2Points) totalPoints += Number(f.p2Points);
+      });
+    }
+  });
 
   const elCompleted = document.getElementById('stat-matches-completed');
   const elPoints = document.getElementById('stat-total-points');
@@ -1235,7 +1259,79 @@ function renderPlayoffsView() {
 
   const emptyRoundNotice = `<div style="text-align:center; color:var(--text-dim); font-size:0.85rem; padding:1rem;">Sin partidos de este jugador en esta ronda</div>`;
 
-  let html = `
+  // --- BLOQUE DE PREMIOS Y PODIO (siempre arriba del cuadro si hay final con ganador) ---
+  let premiosHtml = '';
+  if (po.final && po.final.winnerId) {
+    const champion = tournamentState.players[po.final.winnerId];
+
+    // Determinar subcampeón (el que llegó a la final y perdió)
+    const runnerUpId = po.final.player1Id === po.final.winnerId ? po.final.player2Id : po.final.player1Id;
+    const runnerUp = runnerUpId ? tournamentState.players[runnerUpId] : null;
+
+    // Determinar los dos terceros (perdedores de semifinales)
+    const thirdPlaceNames = (po.semifinales || []).map(semi => {
+      if (!semi.winnerId) return null;
+      const loserId = semi.player1Id === semi.winnerId ? semi.player2Id : semi.player1Id;
+      return loserId ? (tournamentState.players[loserId]?.name || null) : null;
+    }).filter(Boolean);
+
+    // Break máximo del torneo y su autor
+    const allBreaks = collectAllBreaks();
+    const topBreak = allBreaks.sort((a, b) => b.value - a.value)[0];
+
+    premiosHtml = `
+      <div class="tournament-prizes-section">
+        <!-- Encabezado -->
+        <div class="prizes-header">
+          <span class="prizes-header-icon">🏆</span>
+          <span>Premios · Copa de España de Snooker</span>
+          <span class="prizes-header-icon">🔴</span>
+        </div>
+
+        <!-- Podio -->
+        <div class="prizes-podium">
+
+          ${thirdPlaceNames.length > 0 ? `
+          <!-- 3º PUESTO (los dos) -->
+          <div class="podium-slot podium-third">
+            <div class="podium-medal">🥉</div>
+            <div class="podium-rank-label">3er Puesto</div>
+            ${thirdPlaceNames.map(n => `<div class="podium-name">${escapeHtml(n)}</div>`).join('')}
+          </div>` : ''}
+
+          <!-- 1º PUESTO - CAMPEÓN -->
+          <div class="podium-slot podium-champion">
+            <div class="podium-trophy-emoji">🏆</div>
+            <div class="podium-champion-title">¡CAMPEÓN!</div>
+            <div class="podium-champion-name">${escapeHtml(champion?.name || 'Campeón')}</div>
+            <div class="podium-country"></div>
+          </div>
+
+          ${runnerUp ? `
+          <!-- 2º PUESTO -->
+          <div class="podium-slot podium-second">
+            <div class="podium-medal">🥈</div>
+            <div class="podium-rank-label">2º Puesto</div>
+            <div class="podium-name">${escapeHtml(runnerUp.name || 'Subcampeón')}</div>
+          </div>` : ''}
+
+        </div>
+
+        ${topBreak ? `
+        <!-- Break máximo del torneo -->
+        <div class="prizes-break-award">
+          <span class="prizes-break-icon">🔥</span>
+          <span class="prizes-break-label">Break Máximo del Torneo:</span>
+          <span class="prizes-break-value">${topBreak.value} pts</span>
+          <span class="prizes-break-player">· ${escapeHtml(topBreak.playerName)}</span>
+          <span class="prizes-break-stage">(${escapeHtml(topBreak.stage || '')})</span>
+        </div>` : ''}
+
+      </div>
+    `;
+  }
+
+  let html = premiosHtml + `
     <div class="bracket-wrapper">
       <div class="bracket-container">
         
@@ -1255,7 +1351,7 @@ function renderPlayoffsView() {
           </div>
         </div>
 
-        <!-- SEMIFINALES (DOMINGO 09:00) -->
+        <!-- SEMIFINALES -->
         <div class="bracket-round-column">
           <div class="bracket-round-header">Semifinales</div>
           <div class="bracket-matches-list">
@@ -1263,7 +1359,7 @@ function renderPlayoffsView() {
           </div>
         </div>
 
-        <!-- GRAN FINAL (DOMINGO 13:00) -->
+        <!-- GRAN FINAL -->
         <div class="bracket-round-column">
           <div class="bracket-round-header">🏆 Gran Final</div>
           <div class="bracket-matches-list">
@@ -1274,18 +1370,6 @@ function renderPlayoffsView() {
       </div>
     </div>
   `;
-
-  if (po.final && po.final.winnerId) {
-    const champion = tournamentState.players[po.final.winnerId];
-    html += `
-      <div class="champion-trophy-card" style="margin-top:2rem; background:linear-gradient(135deg, rgba(241,184,52,0.2) 0%, rgba(22,38,62,0.9) 100%); border:2px solid var(--gold); border-radius:var(--radius-lg); padding:2rem; text-align:center; box-shadow:0 0 35px var(--gold-glow); display:flex; flex-direction:column; align-items:center; gap:0.85rem;">
-        <div style="font-size:3.5rem; animation:bounce 2s infinite ease-in-out;">🏆</div>
-        <div style="font-size:0.95rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--gold); font-weight:900;">¡CAMPEÓN DEL TORNEO DE SNOOKER!</div>
-        <div style="font-size:2rem; font-weight:900; color:var(--gold-light); text-shadow:0 0 20px rgba(241,184,52,0.7);">${escapeHtml(champion?.name || 'Campeón')}</div>
-        <p style="color:var(--text-muted); font-size:0.95rem;">Ganador absoluto del Torneo Snooker Blackpool Madrid</p>
-      </div>
-    `;
-  }
 
   container.innerHTML = html;
   attachPlayoffScoreListeners();
@@ -1338,15 +1422,15 @@ function renderPlayoffNode(match, roundKey) {
         ${tableControl}
       </div>
 
-      <div class="bracket-participant-row ${p1Won ? 'is-winner' : ''}">
+      <div class="bracket-participant-row ${p1Won ? 'is-winner' : (match.winnerId && !p1Won ? 'is-loser' : '')}">
         ${participantCell('p1', p1Name, p1Won)}
-        <input type="number" min="0" max="3" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p1" 
+        <input type="number" min="0" max="${getPlayoffWinThreshold(roundKey)}" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p1" 
                value="${match.p1FramesWon || 0}" ${disabledAttr}>
       </div>
 
-      <div class="bracket-participant-row ${p2Won ? 'is-winner' : ''}">
+      <div class="bracket-participant-row ${p2Won ? 'is-winner' : (match.winnerId && !p2Won ? 'is-loser' : '')}">
         ${participantCell('p2', p2Name, p2Won)}
-        <input type="number" min="0" max="3" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p2" 
+        <input type="number" min="0" max="${getPlayoffWinThreshold(roundKey)}" class="bracket-score-input" data-round="${roundKey}" data-playoff-id="${match.id}" data-player="p2" 
                value="${match.p2FramesWon || 0}" ${disabledAttr}>
       </div>
 
@@ -1397,6 +1481,13 @@ function findPlayoffMatch(roundKey, playoffId) {
   return null;
 }
 
+function getPlayoffWinThreshold(roundKey) {
+  if (roundKey === 'cuartos') return 3;
+  if (roundKey === 'semifinales') return 4;
+  if (roundKey === 'final') return 5;
+  return 2; // octavos: primero en llegar a 2
+}
+
 async function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
   const match = findPlayoffMatch(roundKey, playoffId);
   if (!match) return;
@@ -1404,10 +1495,12 @@ async function handlePlayoffScoreUpdate(roundKey, playoffId, playerKey, val) {
   if (playerKey === 'p1') match.p1FramesWon = val;
   if (playerKey === 'p2') match.p2FramesWon = val;
 
-  if (match.p1FramesWon >= 2 && match.player1Id) {
+  const threshold = getPlayoffWinThreshold(roundKey);
+
+  if (match.p1FramesWon >= threshold && match.player1Id) {
     match.winnerId = match.player1Id;
     match.isCompleted = true;
-  } else if (match.p2FramesWon >= 2 && match.player2Id) {
+  } else if (match.p2FramesWon >= threshold && match.player2Id) {
     match.winnerId = match.player2Id;
     match.isCompleted = true;
   } else {
@@ -1517,7 +1610,22 @@ function buildPlayoffPlayerOptions(match, roundKey, slot) {
   return html;
 }
 
+function recalcPlayoffWinnerWithKey(match, roundKey) {
+  const threshold = getPlayoffWinThreshold(roundKey);
+  if (match.p1FramesWon >= threshold && match.player1Id) {
+    match.winnerId = match.player1Id;
+    match.isCompleted = true;
+  } else if (match.p2FramesWon >= threshold && match.player2Id) {
+    match.winnerId = match.player2Id;
+    match.isCompleted = true;
+  } else {
+    match.winnerId = null;
+    match.isCompleted = false;
+  }
+}
+
 function recalcPlayoffWinner(match) {
+  // Fallback genérico (threshold 2) — no usar para cuartos/semis/final
   if (match.p1FramesWon >= 2 && match.player1Id) {
     match.winnerId = match.player1Id;
     match.isCompleted = true;

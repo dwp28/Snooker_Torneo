@@ -1794,3 +1794,212 @@ body {
     font-size: 1.6rem;
   }
 }
+
+/* ==========================================================================
+   FASE FINAL: GANADOR / PERDEDOR EN CADA FILA DEL BRACKET
+   ========================================================================== */
+
+/* El estado .is-loser pone al perdedor con opacidad baja para destacar al ganador */
+.bracket-participant-row.is-loser {
+  opacity: 0.42;
+  filter: grayscale(0.55);
+}
+
+/* ==========================================================================
+   SECCIÓN DE PREMIOS Y PODIO (arriba del cuadro final)
+   ========================================================================== */
+
+.tournament-prizes-section {
+  background: linear-gradient(135deg, rgba(241,184,52,0.12) 0%, rgba(22,28,55,0.97) 100%);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 40px rgba(241,184,52,0.18), 0 8px 32px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.prizes-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 18px rgba(241,184,52,0.55);
+}
+
+.prizes-header-icon {
+  font-size: 1.4rem;
+}
+
+/* Podio de 3 columnas (3º - 1º - 2º) */
+.prizes-podium {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-md);
+  text-align: center;
+  min-width: 140px;
+  transition: transform 0.3s ease;
+}
+
+.podium-slot:hover {
+  transform: translateY(-4px);
+}
+
+/* Campeón (1er puesto) — más alto y llamativo */
+.podium-champion {
+  background: linear-gradient(160deg, rgba(241,184,52,0.28) 0%, rgba(15,20,40,0.95) 100%);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 30px rgba(241,184,52,0.35), 0 8px 24px rgba(0,0,0,0.5);
+  order: 2;
+  padding: 1.75rem 2rem;
+}
+
+/* Subcampeón (2º puesto) */
+.podium-second {
+  background: rgba(192,192,192,0.1);
+  border: 1.5px solid rgba(192,192,192,0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  order: 3;
+}
+
+/* Tercero (3er puesto — son 2) */
+.podium-third {
+  background: rgba(180,120,50,0.1);
+  border: 1.5px solid rgba(205,127,50,0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  order: 1;
+}
+
+.podium-trophy-emoji {
+  font-size: 3.5rem;
+  animation: bounce 2s infinite ease-in-out;
+  line-height: 1;
+}
+
+.podium-medal {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.podium-champion-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.25rem;
+}
+
+.podium-champion-name {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: var(--gold-light);
+  text-shadow: 0 0 18px rgba(241,184,52,0.7);
+  margin-top: 0.2rem;
+  line-height: 1.1;
+}
+
+.podium-country {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.podium-rank-label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.2rem;
+}
+
+.podium-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.25;
+  margin-top: 0.1rem;
+}
+
+/* Break máximo del torneo */
+.prizes-break-award {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: rgba(241,184,52,0.08);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 1.25rem;
+  font-size: 0.92rem;
+}
+
+.prizes-break-icon {
+  font-size: 1.2rem;
+}
+
+.prizes-break-label {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.prizes-break-value {
+  color: var(--gold-light);
+  font-weight: 900;
+  font-size: 1.05rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.prizes-break-player {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.prizes-break-stage {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 600px) {
+  .prizes-podium {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .podium-champion {
+    order: 1;
+  }
+  .podium-second {
+    order: 2;
+  }
+  .podium-third {
+    order: 3;
+  }
+
+  .podium-champion-name {
+    font-size: 1.4rem;
+  }
+}
