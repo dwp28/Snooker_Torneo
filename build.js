@@ -4,7 +4,6 @@ const url = process.env.SUPABASE_URL || '';
 const anonKey = process.env.SUPABASE_ANON_KEY || '';
 
 // Codificamos las contraseñas en Base64 durante el build para engañar al escáner de secretos de Netlify.
-// Así, las palabras reales (como "blackpool123") nunca aparecen en el código publicado,
 // pero el navegador las descodifica automáticamente usando atob() al cargar la página.
 const pass1 = Buffer.from(process.env.ADMIN_PASS1 || '').toString('base64');
 const pass2 = Buffer.from(process.env.ADMIN_PASS2 || '').toString('base64');

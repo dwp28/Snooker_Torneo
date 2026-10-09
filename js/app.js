@@ -363,7 +363,7 @@ function updateGroupsVenueBanner() {
  * Event Listeners & Modales
  */
 function setupEventListeners() {
-  // Modal Login Admin (Contraseña blackpool123)
+  // Modal Login Admin
   const btnLoginTrigger = document.getElementById('btn-login-admin-trigger');
   const modalLogin = document.getElementById('modal-admin-login');
   const btnSubmitLogin = document.getElementById('btn-submit-admin-login');
