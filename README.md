@@ -1,276 +1,115 @@
 <p align="center">
-  <img src="./IMG/github-banner.png" width="100%">
+  <img src="./IMG/github-banner.png" width="100%" alt="Snooker Tournament Banner">
 </p>
 
-<h1 align="center">🎱 Snooker Tournament Madrid 2026</h1>
+<h1 align="center">🎱 Torneo Snooker Madrid 2026 - Copa de España</h1>
 
 <p align="center">
-  Tournament Management Web Application
+  <a href="https://snookertorneomadrid.netlify.app/">
+    <img src="https://img.shields.io/badge/Live%20Demo-00C7B7?style=for-the-badge&logo=netlify&logoColor=white" />
+  </a>
+  <a href="https://github.com/dwp28">
+    <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />
+  </a>
 </p>
 
-Aplicación web para la gestión y visualización de un torneo de Snooker.
-
-El proyecto permite gestionar los grupos de clasificación, partidos, resultados, frames, horarios, mesas y fase final del torneo, con una interfaz adaptada tanto a ordenador como a dispositivos móviles.
-
-La aplicación está diseñada para disponer de una vista pública para los jugadores y un panel de administración para gestionar los datos del torneo.
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=html,css,js,supabase,netlify,github" />
+</p>
 
 ---
 
-## 🌐 Aplicación
+## 🏆 Acerca del Proyecto
 
-La aplicación está publicada mediante Netlify:
+Esta aplicación web ha sido desarrollada a petición de la **Federación Española de Snooker** para la **Copa de España de Snooker**, que se celebró en Madrid los días **2, 3 y 4 de Octubre de 2026**.
 
-https://snookertorneomadrid.netlify.app/
+El objetivo principal de este software es **sustituir las antiguas hojas de Excel** por una plataforma interactiva, moderna y en tiempo real. Esto permite tanto a los **jugadores** como a los **espectadores** seguir el transcurso del torneo en vivo desde sus teléfonos móviles, mientras la organización gestiona los cuadros y marcadores fácilmente desde el Panel de Administración.
 
-Los jugadores pueden acceder al torneo mediante el enlace público o mediante un código QR.
-
----
-
-## 🚀 Características Principales
-
-- **⚡ Sincronización en Tiempo Real (Supabase Realtime):** Todos los cambios en marcadores, horarios o breaks realizados por la organización se reflejan al instante en los dispositivos de los espectadores sin necesidad de recargar la página.
-- **🔒 Panel de Administración Protegido:** Modificación de resultados, marcadores, edición de nombres, asignación de mesas y reseteo del torneo mediante acceso seguro por clave (**\*\*\***).
-- **🏆 Fase de Grupos + Cuadro Final:**
-  - **Fase 1:** 8 Grupos de 4 jugadores (48 partidos en total).
-  - **Fase Final:** Clasificación directa a **Octavos → Cuartos → Semifinales → Final**.
-- **🎯 Criterios de Desempate Automáticos:**
-  1. Frames ganados.
-  2. Puntos totales acumulados en todos los frames.
-  3. Resultado directo entre jugadores.
-- **⚡ Registro de Highest Break:** Seguimiento del break máximo individual conseguido por cada jugador durante el torneo.
-- **📱 Filtros Intuitivos:** Visualización separada por sede (**Vallecas / Alcobendas**) con filtros interactivos por **Grupo**, **Mesa** y **Horario**.
-- **📱 Diseño Responsive & UI Snooker:** Tema oscuro optimizado con paleta verde mesa snooker, texto dorado y tipografía legible en teléfonos y tablets.
+<p align="center">
+  <img src="./IMG/app.png" width="800" alt="Interfaz de la App">
+</p>
 
 ---
 
-## 📋 Funcionalidades
+## 📍 Sedes y Clubes Oficiales
 
-### 👥 Grupos y clasificación
+El torneo se disputa simultáneamente en dos de los mejores clubes de Madrid. Puedes hacer clic en los enlaces para visitar sus páginas oficiales:
 
-- Visualización de los grupos del torneo.
-- Clasificación de los jugadores.
-- Posición de cada jugador.
-- Puntos obtenidos.
-- Resultados de los partidos.
-- Visualización clara y adaptada a dispositivos móviles.
-
-### 🎱 Partidos
-
-Cada partido muestra información como:
-
-- Jugadores participantes.
-- Resultado.
-- Frames.
-- Estado del partido.
-- Fecha.
-- Hora de comienzo.
-- Mesa.
-- Sede.
-- Highest Break / Break máximo de cada jugador.
-
-Los partidos disputados se diferencian visualmente de los partidos pendientes para facilitar el seguimiento del torneo.
-
-### 📊 Desglose por frames
-
-Los partidos permiten consultar el resultado frame por frame, manteniendo el sistema de desglose existente en el proyecto.
-
-### 🏆 Fase final
-
-La fase final del torneo se estructura mediante eliminatorias:
-
-**Octavos de final → Cuartos de final → Semifinales → Final**
-
-La estructura exacta de las rondas depende de la configuración del torneo.
-
-### 🕐 Horarios
-
-El torneo contempla diferentes horarios según el día:
-
-**Viernes**
-
-- 12:00 – 22:00
-
-**Sábado**
-
-- 09:00 – 22:00
-
-**Domingo**
-
-- Semifinales: 09:00
-- Final: 13:00
-
-Los partidos tienen una duración aproximada de 2 horas y la planificación busca proporcionar descansos razonables entre partidos para cada jugador.
-
-### 📍 Sedes
-
-El torneo utiliza las siguientes sedes:
-
-- Vallecas
-- Alcobendas
-
-Los partidos pueden mostrar tanto la sede como la mesa asignada.
+- 🔴 **Sede Vallecas:** [Black Ball Madrid](https://blackballmadrid.com/)
+- 🔴 **Sede Alcobendas:** [Club Snooker Valdelasfuentes](https://www.instagram.com/csvaldelasfuentes/)
 
 ---
 
-## ![Snooker Table Header](IMG/Snooker1.jpg)
+## 🚀 Funcionalidades Principales
 
-## 🗄️ Base de datos
-
-El proyecto utiliza **Supabase** como base de datos para almacenar la información del torneo.
-
-La base de datos permite mantener una única fuente de información compartida entre todos los dispositivos.
-
-Entre los datos gestionados se encuentran:
-
-- Jugadores.
-- Partidos.
-- Resultados.
-- Frames.
-- Highest Break.
-- Horarios.
-- Mesas.
-- Sedes.
-- Clasificación.
-- Configuración del torneo.
-
-De esta forma, cuando un administrador modifica un resultado o cualquier otro dato, los demás usuarios pueden consultar la información actualizada desde la aplicación.
+- **⚡ Sincronización en Tiempo Real (Supabase):** Los marcadores, breaks y avances de ronda se actualizan solos en todos los dispositivos sin tener que recargar la página.
+- **📱 Código QR de Acceso:** Los asistentes pueden escanear el QR en las pantallas de los clubes para abrir la App directamente en su móvil.
+  <br>
+  <img src="./IMG/qr.png" width="180" alt="Código QR">
+- **🔒 Modo Administrador:** Mediante contraseña, los organizadores pueden editar marcadores (frame a frame), modificar fechas, añadir enlaces de YouTube de las retransmisiones y generar el cuadro de la Fase Final.
+- **👀 Modo Espectador (Solo Lectura):** Acceso público seguro donde el público solo puede visualizar el desarrollo de los grupos y el cuadro eliminatorio.
+- **🎯 Desempates y Cuadros Automáticos:** El sistema calcula los puestos de grupo de forma autónoma siguiendo las normativas de la federación (Partidos ganados > Diferencia de frames > Enfrentamiento directo).
 
 ---
 
-## 🔐 Administración
+## ⚙️ Arquitectura y Flujo de Trabajo (Workflow)
 
-La aplicación diferencia entre dos tipos de usuarios:
+El proyecto destaca por tener una arquitectura 100% _Serverless_ y de bajo coste, utilizando tecnologías nativas web (Vanilla JS, HTML, CSS) orquestadas con herramientas modernas en la nube:
 
-### Usuario público
+### 1. Base de Datos en Vivo (Supabase)
 
-Los jugadores y visitantes pueden consultar:
+Toda la estructura del torneo y los resultados se almacenan en un objeto JSON reactivo dentro de PostgreSQL en **Supabase**. Gracias a la API de `Supabase Realtime`, todos los clientes web (navegadores) están suscritos a los cambios y se actualizan de inmediato al haber una modificación.
 
-- Grupos.
-- Clasificación.
-- Partidos.
-- Horarios.
-- Mesas.
-- Resultados.
-- Frames.
-- Highest Break.
-- Fase final.
+### 2. Mantenimiento Automático (GitHub Actions)
 
-Los usuarios públicos no deben poder modificar los datos del torneo.
+Dado que los proyectos gratuitos en Supabase entran en estado de _stand-by_ tras 7 días de inactividad, se ha implementado un flujo de trabajo (`workflow`) en GitHub Actions (`.github/workflows/keepalive.yml`).
 
-### Administrador
+- **¿Qué hace?** Se ejecuta de forma invisible cada 2 días haciendo un "ping" a la base de datos para mantenerla activa de forma permanente, sin coste alguno.
+- **Seguridad:** Utiliza GitHub Secrets (`SUPABASE_URL` y `SUPABASE_ANON_KEY`) de forma segura para autenticar la petición.
 
-El panel de administración permite gestionar el torneo, incluyendo:
+### 3. Despliegue y Seguridad (Netlify)
 
-- Jugadores.
-- Partidos.
-- Resultados.
-- Frames.
-- Highest Break.
-- Horarios.
-- Mesas.
-- Sedes.
-- Puntos.
-- Reinicio de partidos.
-- Reinicio del torneo.
+La web está alojada y servida globalmente a través de **Netlify**. Para solucionar el problema de mantener el repositorio público en GitHub sin exponer las contraseñas de administración, se implementó un proceso de construcción personalizado:
 
-El acceso a las funciones de modificación está restringido a administradores.
+- **El problema:** El escáner de secretos de Netlify (Secret Scanner) bloquea la subida si detecta una contraseña literal en el código publicado.
+- **La solución (`netlify.toml` + `build.js`):** Durante el proceso de construcción (_build_) en los servidores de Netlify, el script `build.js` lee las contraseñas seguras, las **codifica en Base64**, y genera el archivo `js/config.js`.
+- Al estar en Base64, el escáner aprueba la publicación. Al cargar la página, el navegador del usuario decodifica la clave usando `atob()` de forma completamente invisible, garantizando la seguridad en el repositorio y la funcionalidad en la web.
 
 ---
 
-## 📱 Acceso mediante QR
-
-El torneo puede compartirse mediante un código QR.
-
-El QR dirige a la aplicación pública desplegada en Netlify:
-
-https://snookertorneomadrid.netlify.app/
-
-Los jugadores pueden escanear el código desde sus teléfonos y consultar el estado actual del torneo.
-
----
-
-## 🛠️ Tecnologías
-
-El proyecto utiliza tecnologías web sencillas y orientadas a una aplicación rápida y fácil de mantener.
-
-- HTML
-- CSS
-- JavaScript
-- Supabase
-- Netlify
-
----
-
-## 📁 Estructura del proyecto
+## 📁 Estructura del Código
 
 ```text
 .
 ├── css/
-│   └── styles.css
-│
-├── IMG/
-│   ├── Snooker1.jpg
-│   └── Snooker2.jpg
-│
+│   └── styles.css          # Estilos premium oscuros, animaciones y diseño responsive
+├── IMG/                    # Recursos gráficos (logos, QR, imágenes de las sedes)
 ├── js/
-│   ├── app.js
-│   └── tournamentData.js
-│
-├── index.html
-├── supabase_schema.sql
-├── ESPECIFICACIONES_TORNEO_SNOOKER...
-├── README.md
-└── .gitignore
-
+│   ├── app.js              # Lógica principal, autenticación y Supabase Realtime
+│   └── tournamentData.js   # Esquema inicial y configuración por defecto
+├── .github/workflows/
+│   └── keepalive.yml       # Automatización (Cron) para mantener Supabase activo
+├── build.js                # Script NodeJS pre-despliegue para ofuscación de secretos (Base64)
+├── netlify.toml            # Configuración del motor de despliegue en Netlify
+├── index.html              # Estructura principal de la SPA (Single Page Application)
+└── README.md
 ```
 
 ---
 
-![Snooker Table Final](IMG/Snooker2.jpg)
+<p align="center">
+  <img src="./IMG/Snooker2.jpg" width="80%" alt="Snooker Final">
+</p>
 
 ---
 
----
-
-<h2 align="center">🎱 Snooker Tournament Madrid 2026</h2>
-
 <p align="center">
-  Tournament management web application
-</p>
-
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=html,css,js,vscode,github,supabase,netlify" />
-</p>
-
-<br>
-
-<p align="center">
-  <a href="https://github.com/dwp28">
-    <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />
-  </a>
-  <a href="https://snookertorneomadrid.netlify.app/">
-    <img src="https://img.shields.io/badge/Live%20Demo-00C7B7?style=for-the-badge&logo=netlify&logoColor=white" />
-  </a>
-</p>
-
-<br>
-
-<p align="center">
-  Developed by <b>Daniel Willson</b>
-</p>
-
-<p align="center">
-  Computer Engineering Student
+  Developed by <b>Daniel Willson</b><br>
+  <i>Computer Engineering Student</i>
 </p>
 
 <p align="center">
   <a href="https://github.com/dwp28">
     <img src="https://img.shields.io/badge/Visit%20my%20GitHub-100000?style=flat-square&logo=github&logoColor=white" />
   </a>
-</p>
-
----
-
-<p align="center">
-  <i>Built with HTML, CSS, JavaScript & Supabase</i>
 </p>
