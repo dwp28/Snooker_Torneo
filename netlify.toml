@@ -1,6 +1,3 @@
 [build]
-  command = "echo \"const ENV = { SUPABASE_URL: '${SUPABASE_URL}', SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY}', ADMIN_PASSWORDS: ['${ADMIN_PASS1}', '${ADMIN_PASS2}'] };\" > js/config.js"
+  command = "node build.js"
   publish = "."
-
-[build.environment]
-  SECRETS_SCAN_OMIT_PATHS = "js/config.js"
