@@ -7,6 +7,7 @@
   <meta name="description" content="Plataforma en vivo para el Torneo: Copa de España de Snooker - Sedes Vallecas y Alcobendas. Resultados, horarios, mesas y clasificación.">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%200%20100%20100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body>
 
@@ -374,7 +375,16 @@
         </div>
       </div>
 
-      <div class="admin-grid">
+      <div id="spectator-admin-message" style="display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); gap: 1rem;">
+        <span style="font-size: 3rem;">🔒</span>
+        <h2>Área Restringida</h2>
+        <p>Esta pestaña es exclusiva para la administración del torneo.</p>
+        <button type="button" class="btn-admin-action btn-primary" onclick="document.getElementById('btn-login-admin-trigger').click()">
+          🔑 Iniciar Sesión como Administrador
+        </button>
+      </div>
+
+      <div class="admin-grid" id="admin-content-grid" style="display: none; flex: 1;">
         
         <!-- Sincronización Supabase / JSON -->
         <div class="admin-card">
@@ -549,13 +559,76 @@ END $$;</pre>
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <footer class="app-footer">
-    <p>🔴 <strong>Torneo Snooker: Copa de España</strong> | Sedes Vallecas & Alcobendas</p>
-    <p style="margin-top:0.35rem; color:var(--text-dim);">Sincronización en vivo con Supabase | Despliegue oficial en Netlify</p>
-  </footer>
+<!-- FOOTER -->
+<footer class="app-footer">
+    <div class="footer-content">
+
+        <!-- Identidad del torneo -->
+        <div class="footer-brand">
+            <span class="footer-ball">●</span>
+            <h3>Torneo Snooker <span>Copa de España</span></h3>
+            <p class="footer-locations">
+                <i class="fa-solid fa-location-dot"></i>
+                Sedes Vallecas &amp; Alcobendas
+            </p>
+        </div>
+
+        <div class="footer-divider"></div>
+
+        <!-- Información técnica -->
+        <div class="footer-info">
+            <span class="footer-status">
+                <span class="status-dot"></span>
+                Sistema sincronizado en vivo
+            </span>
+            <p>Datos en tiempo real con Supabase</p>
+            <p>Aplicación desplegada en Netlify</p>
+        </div>
+
+        <!-- Enlaces externos -->
+        <div class="footer-links">
+            <a href="https://github.com/dwp28/Snooker_Torneo"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="footer-link github-link">
+                <i class="fa-brands fa-github"></i>
+                <span>GitHub</span>
+                <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i>
+            </a>
+
+            <a href="https://supabase.com/"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="footer-link supabase-link">
+                <img src="https://cdn.simpleicons.org/supabase/3ECF8E"
+                     alt=""
+                     class="footer-brand-icon">
+                <span>Supabase</span>
+                <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i>
+            </a>
+
+            <a href="https://www.netlify.com/"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="footer-link netlify-link">
+                <img src="https://cdn.simpleicons.org/netlify/32C3E7"
+                     alt=""
+                     class="footer-brand-icon">
+                <span>Netlify</span>
+                <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Pie legal -->
+    <div class="footer-bottom">
+        <span>© 2026 Torneo Snooker · Copa de España</span>
+    </div>
+</footer>
+
 
   <!-- SCRIPTS -->
+  <script src="js/config.js"></script>
   <script src="js/tournamentData.js"></script>
   <script src="js/app.js"></script>
 </body>

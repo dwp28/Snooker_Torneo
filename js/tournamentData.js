@@ -5,16 +5,16 @@
  */
 
 const SUPABASE_CONFIG = {
-  url: 'https://hiyamdvdvvslkvmpdkuh.supabase.co',
-  anonKey: 'sb_publishable_wIOFzHcSvy5eJ44BJGEU4A_DPyP2P_R',
+  url: typeof ENV !== 'undefined' ? ENV.SUPABASE_URL : '',
+  anonKey: typeof ENV !== 'undefined' ? ENV.SUPABASE_ANON_KEY : '',
   tableName: 'tournament_state',
   recordId: 'current'
 };
 
 const STORAGE_KEY = 'SNOOKER_TOURNAMENT_BLACKPOOL_MADRID_V3';
 
-// Contraseñas de administración aceptadas (blackpool123 solicitada)
-const ADMIN_PASSWORDS = ['blackpool123', 'blackpoolmadrid123'];
+// Contraseñas de administración aceptadas
+const ADMIN_PASSWORDS = typeof ENV !== 'undefined' ? ENV.ADMIN_PASSWORDS : [];
 
 // Sede Vallecas (Black Ball Madrid): Grupos 1, 4, 5 y 8
 // Sede Alcobendas (Club Snooker Valdelasfuentes): Grupos 2, 3, 6 y 7

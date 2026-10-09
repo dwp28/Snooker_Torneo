@@ -1,5 +1,5 @@
 -- ============================================================================
--- 🎱 TORNEO SNOOKER BLACKPOOL MADRID - ESQUEMA SUPABASE
+-- TORNEO SNOOKER BLACKPOOL MADRID - ESQUEMA SUPABASE
 -- Pega y ejecuta este código en: Supabase -> SQL Editor -> New Query -> Run
 -- ============================================================================
 

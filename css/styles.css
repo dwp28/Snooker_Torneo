@@ -304,6 +304,7 @@ body {
   width: 100%;
   max-height: 150px;
   object-fit: cover;
+  object-position: left center;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-gold);
   margin-bottom: 1.5rem;
@@ -554,6 +555,11 @@ body {
   box-shadow: 0 4px 16px rgba(241, 184, 52, 0.45);
 }
 
+.nav-tab-btn.tab-admin {
+  flex-grow: 1;
+  justify-content: center;
+}
+
 /* ==========================================================================
    MAIN CONTENT & ADVANCED FILTERS
    ========================================================================== */
@@ -571,6 +577,12 @@ body {
 
 .tab-pane.active {
   display: block;
+}
+
+#tab-admin.active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 350px);
 }
 
 @keyframes fadeIn {
@@ -939,12 +951,14 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 0.35rem;
 }
 
 .player-side.player-right {
-  text-align: right;
-  align-items: flex-end;
+  text-align: center;
+  align-items: center;
 }
 
 /* HUGE Player Names */
@@ -1525,15 +1539,270 @@ body {
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* ==============================
+   FOOTER — TORNEO SNOOKER
+   ============================== */
+
 .app-footer {
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  padding: 1.75rem 1rem;
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  margin-top: auto;
+    position: relative;
+    margin-top: 3rem;
+    padding: 2rem 2rem 1rem;
+    overflow: hidden;
+
+    background: linear-gradient(
+        135deg,
+        rgba(12, 24, 20, 0.98),
+        rgba(18, 20, 25, 0.98)
+    );
+
+    border: 1px solid rgba(212, 175, 55, 0.20);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
 }
+
+/* Línea dorada superior */
+.app-footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 80%;
+    height: 2px;
+
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--gold-light, #e5c76b),
+        transparent
+    );
+}
+
+.footer-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto 1.8rem;
+}
+
+/* Marca del torneo */
+.footer-brand {
+    flex: 1.2;
+}
+
+.footer-brand h3 {
+    margin: 0.4rem 0;
+    color: #f5f0df;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.footer-brand h3 span {
+    color: var(--gold-light, #e5c76b);
+}
+
+.footer-ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 23px;
+    height: 23px;
+    color: #fff;
+    background: #d52b36;
+    border-radius: 50%;
+    box-shadow: inset -3px -3px 5px rgba(0, 0, 0, 0.25);
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.footer-locations {
+    margin: 0.6rem 0 0;
+    color: #b7beb9;
+    font-size: 0.88rem;
+}
+
+.footer-locations i {
+    margin-right: 5px;
+    color: var(--gold-light, #e5c76b);
+}
+
+/* Separador */
+.footer-divider {
+    width: 1px;
+    align-self: stretch;
+    min-height: 75px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Estado del sistema */
+.footer-info {
+    flex: 1;
+    color: #aeb7b2;
+    font-size: 0.82rem;
+    line-height: 1.7;
+}
+
+.footer-info p {
+    margin: 0.25rem 0;
+}
+
+.footer-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 0.3rem;
+    color: #e4e9e5;
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #35d07f;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(53, 208, 127, 0.55);
+}
+
+/* Enlaces */
+.footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 155px;
+}
+
+.footer-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.65rem 0.85rem;
+
+    color: #e8ece9;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 9px;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.footer-link > i:first-child,
+.footer-brand-icon {
+    width: 19px;
+    height: 19px;
+    font-size: 1.2rem;
+    object-fit: contain;
+}
+
+.footer-link .external-icon {
+    width: auto;
+    height: auto;
+    margin-left: auto;
+    color: #858e88;
+    font-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.footer-link:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(229, 199, 107, 0.45);
+}
+
+.footer-link:hover .external-icon {
+    opacity: 1;
+}
+
+.github-link:hover {
+    color: #fff;
+}
+
+.supabase-link:hover {
+    border-color: rgba(62, 207, 142, 0.5);
+}
+
+.netlify-link:hover {
+    border-color: rgba(50, 195, 231, 0.5);
+}
+
+/* Franja inferior */
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 1rem;
+
+    color: #858e88;
+    font-size: 0.76rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.footer-heart {
+    color: #e45b64;
+}
+
+/* Adaptación a móviles */
+@media (max-width: 768px) {
+    .app-footer {
+        padding: 1.5rem 1rem 1rem;
+        margin-top: 2rem;
+    }
+
+    .footer-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.25rem;
+    }
+
+    .footer-divider {
+        width: 100%;
+        min-height: 1px;
+    }
+
+    .footer-links {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .footer-link {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 0.7rem 0.25rem;
+        font-size: 0.78rem;
+    }
+
+    .footer-link .external-icon {
+        display: none;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .footer-link,
+    .footer-link .external-icon {
+        transition: none;
+    }
+}
+
 
 /* ==========================================================================
    ADMIN: MESA, JUGADORES DEL CUADRO Y ENLACE DE YOUTUBE
@@ -1598,6 +1867,7 @@ body {
 .match-video-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.6rem;
 }
 
@@ -1844,7 +2114,7 @@ body {
   flex-direction: row;
   align-items: flex-end;
   justify-content: center;
-  gap: 1rem;
+  gap: 2.5rem;
   flex-wrap: wrap;
   width: 100%;
 }
@@ -1872,6 +2142,7 @@ body {
   box-shadow: 0 0 30px rgba(241,184,52,0.35), 0 8px 24px rgba(0,0,0,0.5);
   order: 2;
   padding: 1.75rem 2rem;
+  min-height: 220px;
 }
 
 /* Subcampeón (2º puesto) */
@@ -1879,7 +2150,8 @@ body {
   background: rgba(192,192,192,0.1);
   border: 1.5px solid rgba(192,192,192,0.4);
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  order: 3;
+  order: 1;
+  min-height: 180px;
 }
 
 /* Tercero (3er puesto — son 2) */
@@ -1887,7 +2159,8 @@ body {
   background: rgba(180,120,50,0.1);
   border: 1.5px solid rgba(205,127,50,0.4);
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  order: 1;
+  order: 3;
+  min-height: 130px;
 }
 
 .podium-trophy-emoji {

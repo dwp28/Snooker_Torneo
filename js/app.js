@@ -78,17 +78,23 @@ function updateAdminUIState() {
   const logoutTrigger = document.getElementById('btn-logout-admin-trigger');
   const adminBadge = document.getElementById('admin-status-badge');
   const spectatorBadge = document.getElementById('spectator-status-badge');
+  const spectatorMessage = document.getElementById('spectator-admin-message');
+  const adminGrid = document.getElementById('admin-content-grid');
 
   if (isAdminAuthenticated) {
     if (loginTrigger) loginTrigger.style.display = 'none';
     if (logoutTrigger) logoutTrigger.style.display = 'inline-flex';
     if (adminBadge) adminBadge.style.display = 'inline-flex';
     if (spectatorBadge) spectatorBadge.style.display = 'none';
+    if (spectatorMessage) spectatorMessage.style.display = 'none';
+    if (adminGrid) adminGrid.style.display = 'grid';
   } else {
     if (loginTrigger) loginTrigger.style.display = 'inline-flex';
     if (logoutTrigger) logoutTrigger.style.display = 'none';
     if (adminBadge) adminBadge.style.display = 'none';
     if (spectatorBadge) spectatorBadge.style.display = 'inline-flex';
+    if (spectatorMessage) spectatorMessage.style.display = 'flex';
+    if (adminGrid) adminGrid.style.display = 'none';
   }
 }
 
@@ -827,11 +833,7 @@ function renderSingleMatchCard(match, group) {
             💾 Guardar Partido
           </button>
         </div>
-      ` : `
-        <div style="font-size:0.75rem; color:var(--text-dim); text-align:center; padding-top:0.2rem;">
-          👀 Solo lectura · Inicia sesión como admin para editar
-        </div>
-      `}
+      ` : ''}
     </div>
   `;
 }
